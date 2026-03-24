@@ -1,7 +1,9 @@
 import { apiRequest } from '@/lib/api-client';
 import type { PaginationMeta, WishlistItem } from '@/lib/types';
 
-export async function getWishlist(page = 1, limit = 100) {
+export const WISHLIST_MAX_LIMIT = 50;
+
+export async function getWishlist(page = 1, limit = WISHLIST_MAX_LIMIT) {
   const response = await apiRequest<WishlistItem[]>('/api/wishlist', {
     auth: true,
     query: { page, limit },

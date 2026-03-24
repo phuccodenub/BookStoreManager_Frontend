@@ -18,7 +18,7 @@ const authBridge: AuthBridge = {
 export class ApiError extends Error {
   status: number;
   code?: string;
-  details?: Record<string, unknown>;
+  details?: unknown;
 
   constructor(message: string, status: number, payload?: ApiErrorPayload) {
     super(message);
@@ -48,7 +48,23 @@ function buildUrl(path: string, query?: Record<string, string | number | boolean
 async function parseJsonSafely(response: Response) {
   const text = await response.text();
   if (!text) return null;
-  return JSON.parse(text) as ApiEnvelope<unknown> | { error?: ApiErrorPayload; message?: string };
+
+  try {
+    return JSON.parse(text) as ApiEnvelope<unknown> | { error?: ApiErrorPayload; message?: string };
+  } catch {
+    return null;
+  }
+}
+
+async function performRequest(input: string, init?: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch {
+      throw new ApiError('Không thể kết nối tới máy chủ. Vui lòng kiểm tra dịch vụ và thử lại.', 0, {
+        code: 'NETWORK_ERROR',
+        message: 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra dịch vụ và thử lại.',
+      });
+  }
 }
 
 let refreshPromise: Promise<string | null> | null = null;
@@ -62,7 +78,7 @@ async function refreshAccessToken() {
 
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch(buildUrl('/api/auth/refresh'), {
+      const response = await performRequest(buildUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
@@ -103,7 +119,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path, options.query), {
+  const response = await performRequest(buildUrl(path, options.query), {
     ...options,
     headers,
     body: options.json !== undefined ? JSON.stringify(options.json) : undefined,
@@ -142,7 +158,7 @@ export async function apiBlob(path: string, options: RequestOptions = {}) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path, options.query), {
+  const response = await performRequest(buildUrl(path, options.query), {
     ...options,
     headers,
   });

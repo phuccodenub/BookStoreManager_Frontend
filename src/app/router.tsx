@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import AppShell from '@/components/AppShell';
+import PageLoadingState from '@/components/PageLoadingState';
 import QueryBoundary from '@/components/QueryBoundary';
 import { RequireAuth, RequireRole } from '@/features/auth/AuthContext';
 
@@ -12,13 +13,14 @@ const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const CartPage = lazy(() => import('@/features/cart/CartPage'));
 const WishlistPage = lazy(() => import('@/features/wishlist/WishlistPage'));
 const AccountPage = lazy(() => import('@/features/account/AccountPage'));
+const OrderSuccessPage = lazy(() => import('@/features/order/OrderSuccessPage'));
 const SupportPage = lazy(() => import('@/features/support/SupportPage'));
 const AdminPage = lazy(() => import('@/features/admin/AdminPage'));
 
 function withBoundary(element: React.ReactNode) {
   return (
     <QueryBoundary>
-      <Suspense fallback={<div className="page-loading">Loading page...</div>}>{element}</Suspense>
+      <Suspense fallback={<PageLoadingState />}>{element}</Suspense>
     </QueryBoundary>
   );
 }
@@ -36,6 +38,10 @@ export const appRouter = createBrowserRouter([
       {
         path: 'cart',
         element: <RequireAuth>{withBoundary(<CartPage />)}</RequireAuth>,
+      },
+      {
+        path: 'order-success',
+        element: <RequireAuth>{withBoundary(<OrderSuccessPage />)}</RequireAuth>,
       },
       {
         path: 'wishlist',

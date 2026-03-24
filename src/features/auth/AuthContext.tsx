@@ -13,6 +13,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 
 import { queryClient } from '@/app/query-client';
+import PageLoadingState from '@/components/PageLoadingState';
 import { ApiError, apiRequest, configureAuthBridge } from '@/lib/api-client';
 import type { Role, SessionUser } from '@/lib/types';
 import { login as loginApi, logout as logoutApi, register as registerApi, type LoginPayload, type RegisterPayload } from '@/features/auth/auth-api';
@@ -178,7 +179,7 @@ export function RequireAuth({ children }: PropsWithChildren) {
   const location = useLocation();
 
   if (isHydrating) {
-    return <div className="page-loading">Hydrating session...</div>;
+    return <PageLoadingState title="Đang khôi phục phiên đăng nhập" description="Hệ thống đang đồng bộ phiên làm việc trước khi mở nội dung được bảo vệ." />;
   }
 
   if (!isAuthenticated) {
@@ -196,7 +197,7 @@ export function RequireRole({ children, roles }: RequireRoleProps) {
   const { session, isHydrating } = useAuth();
 
   if (isHydrating) {
-    return <div className="page-loading">Hydrating session...</div>;
+    return <PageLoadingState title="Đang xác thực quyền truy cập" description="Hệ thống đang kiểm tra phiên làm việc và vai trò hiện tại của bạn." />;
   }
 
   if (!session || !roles.includes(session.user.role)) {

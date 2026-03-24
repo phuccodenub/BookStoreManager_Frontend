@@ -700,6 +700,130 @@ img {
   background: var(--line);
 }
 
+.admin-order-actions {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.contact-admin-panel,
+.review-edit-stack,
+.review-owner-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.reason-callout {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  margin-top: 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(126, 76, 84, 0.18);
+  background: rgba(126, 76, 84, 0.08);
+}
+
+.reason-callout span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--berry);
+}
+
+.reason-callout strong {
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.status-option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.status-option {
+  border: 1px solid rgba(22, 32, 34, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.status-option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(126, 76, 84, 0.45);
+}
+
+.status-option-active {
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--berry) 0%, var(--gold) 100%);
+}
+
+.status-help {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.rating-selector,
+.review-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.rating-button {
+  border: 1px solid rgba(22, 32, 34, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.7rem 0.95rem;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.rating-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(183, 133, 61, 0.5);
+}
+
+.rating-button-active {
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--berry) 100%);
+}
+
+.review-card-owned {
+  border-color: rgba(183, 133, 61, 0.24);
+  background: rgba(255, 252, 246, 0.88);
+}
+
+.payment-callout {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(183, 133, 61, 0.2);
+  background: rgba(183, 133, 61, 0.08);
+}
+
+.payment-callout span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gold-deep);
+}
+
+.payment-callout strong {
+  color: var(--ink);
+}
+
+.payment-callout p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
 @media (max-width: 1024px) {
   .details-grid {
     grid-template-columns: 1fr;

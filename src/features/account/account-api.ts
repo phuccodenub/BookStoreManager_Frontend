@@ -20,10 +20,26 @@ export async function createAddress(payload: Omit<Address, 'id'>) {
   return data;
 }
 
-export async function getMyOrders() {
+function normalizeOrderLimit(limit: unknown, fallback = 20) {
+  if (typeof limit === 'number' && Number.isFinite(limit)) {
+    return limit;
+  }
+
+  if (typeof limit === 'string') {
+    const parsed = Number(limit);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+export async function getMyOrders(limit?: number) {
+  const safeLimit = normalizeOrderLimit(limit);
   const response = await apiRequest<OrderRecord[]>('/api/orders/me', {
     auth: true,
-    query: { page: 1, limit: 10 },
+    query: { page: 1, limit: safeLimit },
   });
   return response.data;
 }

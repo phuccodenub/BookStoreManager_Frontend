@@ -3,6 +3,7 @@ export type UserStatus = 'active' | 'locked';
 export type PaymentMethod = 'cod' | 'online';
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
 export type OrderStatus = 'pending' | 'confirmed' | 'packing' | 'shipping' | 'completed' | 'cancelled';
+export type ContactStatus = 'new' | 'in_progress' | 'resolved';
 
 export interface PaginationMeta {
   page: number;
@@ -99,6 +100,7 @@ export interface HomeData {
 
 export interface Review {
   id: string;
+  orderId?: string;
   rating: number;
   comment: string | null;
   createdAt: string;
@@ -212,9 +214,14 @@ export interface ContactRecord {
   phone?: string | null;
   subject: string;
   content: string;
-  status: string;
+  status: ContactStatus;
   note?: string | null;
   assignedTo?: string | null;
+  assignedStaff?: {
+    id: string;
+    fullName: string;
+  } | null;
+  updatedAt?: string;
   createdAt?: string;
 }
 
@@ -237,5 +244,7 @@ export interface MetadataCatalog {
   orderStatuses: OrderStatus[];
   paymentStatuses: PaymentStatus[];
   paymentMethods: PaymentMethod[];
+  contactStatuses?: ContactStatus[];
+  orderStatusTransitions?: Partial<Record<OrderStatus, OrderStatus[]>>;
   bookSortOptions: Array<{ value: string; label: string }>;
 }

@@ -1,5 +1,5 @@
 import { apiBlob, apiRequest } from '@/lib/api-client';
-import type { ContactRecord, DashboardSummary, InventoryTransaction, OrderRecord } from '@/lib/types';
+import type { ContactRecord, ContactStatus, DashboardSummary, InventoryTransaction, OrderRecord, OrderStatus } from '@/lib/types';
 
 export async function getDashboard() {
   const { data } = await apiRequest<DashboardSummary>('/api/reports/dashboard', { auth: true });
@@ -22,6 +22,18 @@ export async function getContacts() {
   return response.data;
 }
 
+export async function updateContact(
+  contactId: string,
+  payload: { status?: ContactStatus; note?: string | null },
+) {
+  const { data } = await apiRequest<ContactRecord>(`/api/contacts/${contactId}`, {
+    auth: true,
+    method: 'PATCH',
+    json: payload,
+  });
+  return data;
+}
+
 export async function getInventoryTransactions() {
   const response = await apiRequest<InventoryTransaction[]>('/api/inventory/transactions', {
     auth: true,
@@ -36,4 +48,16 @@ export async function downloadInvoice(orderId: string) {
 
 export async function downloadDeliveryNote(orderId: string) {
   return apiBlob(`/api/orders/${orderId}/delivery-note`, { auth: true });
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  payload: { orderStatus: Exclude<OrderStatus, 'pending'>; cancelledReason?: string },
+) {
+  const { data } = await apiRequest<OrderRecord>(`/api/orders/${orderId}/status`, {
+    auth: true,
+    method: 'PATCH',
+    json: payload,
+  });
+  return data;
 }

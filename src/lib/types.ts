@@ -1,4 +1,5 @@
 export type Role = 'customer' | 'staff' | 'admin';
+export type PrivilegedRole = Extract<Role, 'staff' | 'admin'>;
 export type UserStatus = 'active' | 'locked';
 export type PaymentMethod = 'cod' | 'online';
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
@@ -58,6 +59,11 @@ export interface Banner {
   title: string;
   image: string;
   link: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  status?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
 }
 
 export interface BookSummary {
@@ -236,6 +242,98 @@ export interface InventoryTransaction {
     title: string;
     slug: string;
   };
+}
+
+export interface RevenueReportPoint {
+  month: string;
+  revenue: number;
+}
+
+export interface BestSellerReportRecord {
+  book: Pick<BookSummary, 'id' | 'title' | 'slug' | 'coverImage' | 'price'> | null;
+  totalSold: number;
+  totalRevenue: number;
+}
+
+export interface InventoryReportRecord {
+  id: string;
+  title: string;
+  slug: string;
+  stockQuantity: number;
+  soldQuantity: number;
+  price: number;
+  importPrice: number;
+}
+
+export interface CancelledOrderReportRecord {
+  id: string;
+  orderCode: string;
+  totalAmount: number;
+  cancelledReason?: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
+}
+
+export interface TopCustomerReportRecord {
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string | null;
+  } | null;
+  orderCount: number;
+  totalSpent: number;
+}
+
+export interface ActivityLogRecord {
+  id: string;
+  userId?: string | null;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  oldData?: unknown;
+  newData?: unknown;
+  ipAddress?: string | null;
+  createdAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
+}
+
+export interface AdminCategoryRecord {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  parentId?: string | null;
+  status: boolean;
+  parent?: OptionItem | null;
+  children?: OptionItem[];
+}
+
+export interface AdminAuthorRecord {
+  id: string;
+  name: string;
+  bio?: string | null;
+  avatar?: string | null;
+  status: boolean;
+  books?: Array<Pick<BookSummary, 'id' | 'title' | 'slug' | 'coverImage' | 'price'>>;
+}
+
+export interface AdminPublisherRecord {
+  id: string;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  status: boolean;
+  books?: Array<Pick<BookSummary, 'id' | 'title' | 'slug' | 'price'>>;
 }
 
 export interface MetadataCatalog {

@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api-client';
+import { ApiError, apiRequest, requestAccessTokenRefresh } from '@/lib/api-client';
 import type { SessionUser } from '@/lib/types';
 
 export interface LoginPayload {
@@ -15,7 +15,6 @@ export interface RegisterPayload {
 
 export interface LoginResult {
   accessToken: string;
-  refreshToken: string;
   user: SessionUser;
 }
 
@@ -35,10 +34,22 @@ export async function register(payload: RegisterPayload) {
   return data;
 }
 
-export async function logout(refreshToken: string) {
+export async function refreshSession() {
+  const accessToken = await requestAccessTokenRefresh();
+  if (!accessToken) {
+    throw new ApiError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 401, {
+      code: 'SESSION_EXPIRED',
+      message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+    });
+  }
+
+  return { accessToken };
+}
+
+export async function logout() {
   await apiRequest<null>('/api/auth/logout', {
     method: 'POST',
-    json: { refreshToken },
+    json: {},
   });
 }
 

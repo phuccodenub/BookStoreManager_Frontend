@@ -2,6 +2,10 @@ import { describe, expect, test } from 'vitest';
 
 import {
   formatAdminRealtimeFeedMessage,
+  formatActivityActionLabel,
+  formatActivityDataPreview,
+  formatActivityEntityLabel,
+  formatActivityLogTitle,
   getAdminContactUpdateMessage,
   getAdminOrderUpdateMessage,
   getContactStatusLabel,
@@ -46,5 +50,20 @@ describe('admin-presentation', () => {
     expect(getInventoryTransactionLabel('adjustment')).toBe('Điều chỉnh tồn');
     expect(getInventoryQuantityLabel(3)).toBe('+3 cuốn');
     expect(getInventoryQuantityLabel(-1)).toBe('-1 cuốn');
+  });
+
+  test('formats audit entity and action labels for activity logs', () => {
+    expect(formatActivityEntityLabel('system_config')).toBe('cấu hình hệ thống');
+    expect(formatActivityActionLabel('order_status_updated')).toBe('cập nhật trạng thái đơn hàng');
+    expect(formatActivityLogTitle('user_created', 'user')).toBe('tạo người dùng');
+    expect(formatActivityEntityLabel('custom.event')).toBe('custom event');
+  });
+
+  test('previews activity log payloads without overwhelming the UI', () => {
+    expect(formatActivityDataPreview({ orderStatus: 'shipping', paymentStatus: 'paid' })).toBe(
+      '{"orderStatus":"shipping","paymentStatus":"paid"}',
+    );
+    expect(formatActivityDataPreview(null)).toBeNull();
+    expect(formatActivityDataPreview({})).toBeNull();
   });
 });

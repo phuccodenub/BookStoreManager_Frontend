@@ -15,6 +15,34 @@ const inventoryTransactionLabels: Record<string, string> = {
   order_cancel: 'Hoàn tồn do hủy đơn',
 };
 
+const activityEntityLabels: Record<string, string> = {
+  auth: 'xác thực',
+  inventory_transaction: 'giao dịch tồn kho',
+  order: 'đơn hàng',
+  payment: 'thanh toán',
+  review: 'đánh giá',
+  system_config: 'cấu hình hệ thống',
+  user: 'người dùng',
+};
+
+const activityActionLabels: Record<string, string> = {
+  login: 'đăng nhập',
+  change_password: 'đổi mật khẩu',
+  order_created: 'tạo đơn hàng',
+  order_cancelled: 'hủy đơn hàng',
+  order_status_updated: 'cập nhật trạng thái đơn hàng',
+  payment_webhook_processed: 'xử lý webhook thanh toán',
+  review_updated: 'cập nhật đánh giá',
+  review_deleted: 'xóa đánh giá',
+  settings_updated: 'cập nhật cấu hình',
+  user_created: 'tạo người dùng',
+  user_updated: 'cập nhật người dùng',
+  user_status_updated: 'cập nhật trạng thái người dùng',
+  inventory_import_created: 'ghi nhận nhập kho',
+  inventory_export_created: 'ghi nhận xuất kho',
+  inventory_adjustment_created: 'ghi nhận điều chỉnh tồn',
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -63,12 +91,72 @@ export function getInventoryTransactionLabel(type: string) {
   return inventoryTransactionLabels[type] ?? type;
 }
 
+function humanizeIdentifier(value: string) {
+  return value
+    .replace(/[_:.-]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 export function getAdminOrderUpdateMessage(orderCode: string, status: OrderStatus) {
   return `Đã cập nhật ${orderCode} sang trạng thái ${getOrderStatusLabel(status)}.`;
 }
 
 export function getAdminContactUpdateMessage(subject: string, status: ContactStatus) {
   return `Đã cập nhật yêu cầu "${subject}" sang trạng thái ${getContactStatusLabel(status)}.`;
+}
+
+export function formatActivityEntityLabel(entityType: string) {
+  return activityEntityLabels[entityType] ?? humanizeIdentifier(entityType);
+}
+
+export function formatActivityActionLabel(action: string) {
+  return activityActionLabels[action] ?? humanizeIdentifier(action);
+}
+
+export function formatActivityLogTitle(action: string, entityType: string) {
+  const actionLabel = formatActivityActionLabel(action);
+  const entityLabel = formatActivityEntityLabel(entityType);
+
+  if (actionLabel.includes(entityLabel)) {
+    return actionLabel;
+  }
+
+  return `${actionLabel} ${entityLabel}`.trim();
+}
+
+export function formatActivityDataPreview(value: unknown) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  if (Array.isArray(value) && value.length === 0) {
+    return null;
+  }
+
+  if (isRecord(value) && Object.keys(value).length === 0) {
+    return null;
+  }
+
+  try {
+    const raw = JSON.stringify(value);
+    if (!raw) {
+      return null;
+    }
+
+    return raw.length > 140 ? `${raw.slice(0, 137)}...` : raw;
+  } catch {
+    return null;
+  }
 }
 
 export function formatAdminRealtimeFeedMessage(eventName: string, payload: unknown) {

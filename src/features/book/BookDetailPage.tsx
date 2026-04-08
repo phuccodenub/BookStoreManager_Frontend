@@ -257,7 +257,7 @@ function BookDetailPage() {
   }
 
   return (
-    <div className="page-stack detail-page-shell">
+    <div className="page-stack detail-page-shell ui-detail">
       <nav className="detail-breadcrumbs" aria-label="Breadcrumb">
         <Link to="/">Trang chủ</Link>
         <span>/</span>
@@ -266,7 +266,7 @@ function BookDetailPage() {
         <strong>{book.title}</strong>
       </nav>
 
-      <section className="detail-layout">
+      <section className="detail-layout ui-detail-layout">
         <div className="detail-gallery-panel">
           <div className="detail-gallery-stage">
             {activeImage ? <img alt={book.title} src={activeImage} /> : <span>{book.title.slice(0, 1)}</span>}
@@ -371,7 +371,7 @@ function BookDetailPage() {
         </div>
       </section>
 
-      <section className="detail-panel-layout">
+      <section className="detail-panel-layout ui-detail-panels">
         <article className="surface-card surface-card-highlight detail-main-panel">
           <div className="detail-tabbar">
             <button className={clsx('detail-tab', detailTab === 'description' && 'detail-tab-active')} onClick={() => setDetailTab('description')} type="button">
@@ -613,10 +613,10 @@ function BookDetailPage() {
       </section>
 
       <section className="page-stack">
-        <div className="shelf-header">
+        <div className="ui-section-head">
           <SectionHeading eyebrow="Sách cùng thể loại" title="Tiếp tục khám phá những tựa sách liên quan" />
         </div>
-        <div className="book-grid book-grid-featured">
+        <div className="book-grid ui-book-grid">
           {relatedBooks.map((item) => (
             <BookCard
               key={item.id}
@@ -639,10 +639,10 @@ function BookDetailPage() {
 
       {recentlyViewed.length > 0 ? (
         <section className="page-stack">
-          <div className="shelf-header">
+          <div className="ui-section-head">
             <SectionHeading eyebrow="Sản phẩm đã xem" title="Quay lại các tựa sách bạn vừa duyệt" />
           </div>
-          <div className="book-grid book-grid-featured">
+          <div className="book-grid ui-book-grid">
             {recentlyViewed.map((item) => (
               <BookCard key={item.id} book={item} />
             ))}

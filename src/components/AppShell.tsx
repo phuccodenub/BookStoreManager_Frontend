@@ -44,15 +44,6 @@ function CartIcon() {
   );
 }
 
-function AccountIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="3.3" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M5.5 19.5C6.9 16.8 9.1 15.5 12 15.5C14.9 15.5 17.1 16.8 18.5 19.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
 function BrandIcon() {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 48 48">
@@ -69,8 +60,10 @@ function BrandIcon() {
 function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isPrivileged, logout, session } = useAuth();
+  const { isAuthenticated, isHydrating, isPrivileged, logout, session } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const settingsQuery = useQuery({
     queryKey: ['settings'],
     queryFn: getSettings,
@@ -95,6 +88,20 @@ function AppShell() {
     navigate(`/catalog${params.toString() ? `?${params.toString()}` : ''}`);
   }
 
+  async function handleLogout() {
+    setLogoutError(null);
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+      navigate('/', { replace: true });
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : 'Không thể đăng xuất ngay lúc này. Vui lòng thử lại.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
+
   const userNameParts = session?.user.fullName.split(' ').filter(Boolean) ?? [];
   const userFirstName = userNameParts.at(-1) ?? 'Bạn';
   const userInitials = (userNameParts.length === 0
@@ -107,64 +114,67 @@ function AppShell() {
   const contactAddress = settings?.contactAddress ?? 'Thông tin địa chỉ đang được cập nhật.';
   const contactPhone = settings?.contactPhone ?? 'Số điện thoại hỗ trợ đang được cập nhật.';
   const contactEmail = settings?.contactEmail ?? 'Email hỗ trợ đang được cập nhật.';
+  const isProtectedUserRoute = ['/account', '/wishlist', '/cart', '/order-success'].some((prefix) => location.pathname.startsWith(prefix));
+  const isSyncingProtectedSession = isHydrating && !session && isProtectedUserRoute;
 
   return (
-    <div className="app-shell bookstore-shell">
-      <div className="ambient ambient-left" />
-      <div className="ambient ambient-right" />
-
+    <div className="app-shell">
+      {/* Header theo Figma - user-wishlist.png */}
       <header className="site-header">
-        <div className="header-inner">
-          <NavLink className="brand-lockup" to="/">
-            <span className="brand-icon" aria-hidden="true">
-              <BrandIcon />
-            </span>
-            <span className="brand-copy">
-              <strong className="brand-wordmark">MMT</strong>
-              <span className="brand-submark">Hiệu Sách</span>
-            </span>
+        {/* Top bar: Logo + Search + Actions */}
+        <div className="header-top">
+          <NavLink className="header-logo" to="/">
+            <BrandIcon />
+            <span className="header-logo-text">MMT bookstore</span>
           </NavLink>
 
           <form className="header-search" onSubmit={submitSearch} role="search">
-            <span className="search-icon" aria-hidden="true">
-              <SearchIcon />
-            </span>
+            <SearchIcon />
             <input
               aria-label="Tìm sách, ISBN hoặc tác giả"
-              className="search-input"
+              className="header-search-input"
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Tìm sách, ISBN hoặc tác giả"
+              placeholder="Tìm sách, ISBN hoặc tác giả..."
               type="search"
               value={searchValue}
             />
           </form>
 
-          <div className="header-utilities">
-            {isAuthenticated ? (
+          <div className="header-actions">
+            {isSyncingProtectedSession ? (
+              <span className="header-sync-pill" aria-live="polite">
+                Đang đồng bộ phiên
+              </span>
+            ) : isAuthenticated ? (
               <>
-                <NavLink className="utility-icon-link" to="/wishlist" aria-label="Danh sách yêu thích">
+                <NavLink className="header-icon-btn" to="/wishlist" aria-label="Yêu thích" title="Yêu thích">
                   <HeartIcon />
                 </NavLink>
-                <NavLink className="utility-icon-link" to="/cart" aria-label="Giỏ hàng">
+                <NavLink className="header-icon-btn" to="/cart" aria-label="Giỏ hàng" title="Giỏ hàng">
                   <CartIcon />
                 </NavLink>
-                <NavLink className="utility-profile" to="/account">
-                  <span className="avatar-badge">{userInitials}</span>
-                  <span className="utility-profile-copy">
-                    <strong>{userFirstName}</strong>
-                    <span>{session?.user.role === 'admin' || session?.user.role === 'staff' ? 'Khu vực vận hành' : 'Tài khoản của bạn'}</span>
-                  </span>
+                <NavLink className="header-btn header-btn-primary" to="/cart">
+                  Thanh toán
                 </NavLink>
-                <button className="header-pill header-pill-muted" onClick={logout} type="button">
-                  Thoát
-                </button>
+                <NavLink className="header-user" to="/account" title="Tài khoản">
+                  <span className="header-avatar">{userInitials}</span>
+                  <span className="header-username">{userFirstName}</span>
+                </NavLink>
+                <NavLink className="header-btn header-btn-secondary" to="/login?switch=1">
+                  Đổi tài khoản
+                </NavLink>
+                {isPrivileged ? (
+                  <NavLink className="header-btn header-btn-secondary" to="/admin">
+                    {session?.user.role === 'admin' ? 'Quản trị' : 'Vận hành'}
+                  </NavLink>
+                ) : null}
               </>
             ) : (
               <>
-                <NavLink className="header-pill header-pill-muted" to="/login">
+                <NavLink className="header-btn header-btn-secondary" to="/login">
                   Đăng nhập
                 </NavLink>
-                <NavLink className="header-pill header-pill-accent" to="/login?mode=register">
+                <NavLink className="header-btn header-btn-primary" to="/login?mode=register">
                   Đăng ký
                 </NavLink>
               </>
@@ -172,75 +182,61 @@ function AppShell() {
           </div>
         </div>
 
-        <div className="header-nav-row">
-          <nav className="header-nav" aria-label="Primary navigation">
-            {primaryLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                className={({ isActive }) => clsx('header-nav-link', isActive && 'header-nav-link-active')}
-                end={link.end}
-                to={link.to}
-              >
-                {link.label}
-              </NavLink>
-            ))}
-            {isPrivileged ? (
-              <NavLink className={({ isActive }) => clsx('header-nav-link', isActive && 'header-nav-link-active')} to="/admin">
-                Vận hành
-              </NavLink>
-            ) : null}
-          </nav>
-
-          {isAuthenticated ? (
-            <NavLink className="header-summary-link" to="/account">
-              <AccountIcon />
-              <span>Xem đơn hàng và tài khoản</span>
+        {/* Navigation bar */}
+        <nav className="header-nav" aria-label="Primary navigation">
+          {primaryLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              className={({ isActive }) => clsx('header-nav-link', isActive && 'header-nav-link-active')}
+              end={link.end}
+              to={link.to}
+            >
+              {link.label}
             </NavLink>
-          ) : (
-            <p className="header-summary-text">Khám phá nhà sách, lưu wishlist và theo dõi đơn hàng ngay trên cùng một tài khoản.</p>
+          ))}
+          {logoutError ? <span className="header-nav-status">{logoutError}</span> : null}
+          {isAuthenticated && (
+            <button className="header-nav-logout" disabled={isLoggingOut} onClick={() => void handleLogout()} type="button">
+              {isLoggingOut ? 'Đang thoát...' : 'Thoát'}
+            </button>
           )}
-        </div>
+        </nav>
       </header>
 
-      <main className="page-frame">
+      {/* Main Content */}
+      <main className="main-content page-frame">
         <Outlet />
       </main>
 
+      {/* Footer theo Figma - minimal */}
       <footer className="site-footer">
-        <div className="footer-grid">
-          <div className="footer-column footer-column-brand">
-            <div className="brand-lockup footer-brand-lockup">
-              <span className="brand-icon" aria-hidden="true">
-                <BrandIcon />
-              </span>
-              <span className="brand-copy">
-                <strong className="brand-wordmark">MMT</strong>
-                <span className="brand-submark">Hiệu Sách</span>
-              </span>
+        <div className="footer-container">
+          <div className="footer-col footer-col-brand">
+            <div className="footer-logo">
+              <BrandIcon />
+              <span className="footer-logo-text">MMT bookstore</span>
             </div>
-            <p>
-              {storeName} là nhà sách trực tuyến dành cho người yêu đọc sách, nơi bạn có thể tìm sách mới, lưu danh sách yêu thích
-              và theo dõi đơn hàng một cách gọn gàng, dễ hiểu.
+            <p className="footer-desc">
+              {storeName} - Nhà sách trực tuyến dành cho người yêu đọc sách. Tìm sách mới, lưu danh sách yêu thích và theo dõi đơn hàng dễ dàng.
             </p>
           </div>
 
-          <div className="footer-column">
-            <p className="footer-title">Liên hệ</p>
+          <div className="footer-col">
+            <h4 className="footer-title">Liên hệ</h4>
             <p>{contactAddress}</p>
             <p>{contactPhone}</p>
             <p>{contactEmail}</p>
           </div>
 
-          <div className="footer-column footer-column-map">
-            <p className="footer-title">Bản đồ cửa hàng</p>
-            <div className="footer-map-card">
-              <span className="footer-map-pin" />
-              <div>
-                <strong>Showroom và điểm nhận hàng</strong>
-                <p>Không gian phục vụ mua sắm trực tuyến, nhận đơn và hỗ trợ khách hàng sau mua.</p>
-              </div>
-            </div>
+          <div className="footer-col">
+            <h4 className="footer-title">Thông tin</h4>
+            <p>Showroom và điểm nhận hàng</p>
+            <p>Không gian phục vụ mua sắm trực tuyến, nhận đơn và hỗ trợ khách hàng.</p>
           </div>
+        </div>
+
+        <div className="footer-bottom">
+          <p>&copy; 2024 MMT Bookstore. All rights reserved.</p>
         </div>
       </footer>
     </div>

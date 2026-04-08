@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 import EmptyState from '@/components/EmptyState';
 import SectionHeading from '@/components/SectionHeading';
@@ -17,10 +18,10 @@ import { useAuth } from '@/features/auth/AuthContext';
 import {
   downloadDeliveryNote,
   downloadInvoice,
-  getContacts,
   getDashboard,
   getInventoryTransactions,
-  getOrders,
+  getRecentContactsSnapshot,
+  getRecentOrdersSnapshot,
   updateContact,
   updateOrderStatus,
 } from '@/features/admin/admin-api';
@@ -235,10 +236,11 @@ function AdminContactCard({ contact, availableStatuses, isUpdating, onUpdate }: 
 function AdminPage() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const isAdmin = session?.user.role === 'admin';
   const realtimeFeed = useRealtimeFeed(session?.accessToken ?? null, true);
-  const { data: orders } = useSuspenseQuery({ queryKey: ['admin', 'orders'], queryFn: getOrders });
-  const { data: contacts } = useSuspenseQuery({ queryKey: ['admin', 'contacts'], queryFn: getContacts });
-  const { data: inventoryTransactions } = useSuspenseQuery({ queryKey: ['admin', 'inventory'], queryFn: getInventoryTransactions });
+  const { data: orders } = useSuspenseQuery({ queryKey: ['admin', 'orders', 'recent'], queryFn: getRecentOrdersSnapshot });
+  const { data: contacts } = useSuspenseQuery({ queryKey: ['admin', 'contacts', 'recent'], queryFn: getRecentContactsSnapshot });
+  const { data: inventoryTransactions } = useSuspenseQuery({ queryKey: ['admin', 'inventory'], queryFn: () => getInventoryTransactions() });
   const { data: metadata } = useSuspenseQuery({ queryKey: ['metadata'], queryFn: getMetadata });
   const dashboardQuery = useQuery({
     queryKey: ['admin', 'dashboard'],
@@ -285,9 +287,11 @@ function AdminPage() {
   return (
     <div className="page-stack">
       <SectionHeading
-        eyebrow="Khu vực vận hành"
-        title="Theo dõi đơn hàng, hỗ trợ khách và tồn kho trong một nơi"
-        description="Trang này giúp đội vận hành cập nhật trạng thái đơn, xử lý yêu cầu hỗ trợ và theo dõi các biến động quan trọng trong ngày."
+        eyebrow={isAdmin ? 'Admin dashboard' : 'Staff operations'}
+        title={isAdmin ? 'Theo dõi tổng quan quản trị và vận hành trong một nơi' : 'Theo dõi đơn hàng, hỗ trợ khách và tồn kho trong một nơi'}
+        description={isAdmin
+          ? 'Trang này giúp quản trị viên quan sát tổng quan hệ thống, đồng thời theo dõi các luồng vận hành chính trong ngày.'
+          : 'Trang này giúp nhân viên vận hành cập nhật trạng thái đơn, xử lý yêu cầu hỗ trợ và theo dõi các biến động quan trọng trong ngày.'}
       />
 
       {dashboardQuery.data ? (
@@ -303,9 +307,14 @@ function AdminPage() {
         <article className="surface-card">
           <SectionHeading
             eyebrow="Đơn hàng gần đây"
-            title="Cập nhật tiến trình xử lý và tải chứng từ nhanh"
-            description="Từ đây bạn có thể chuyển trạng thái đơn hàng, xem lý do hủy và tải các tệp cần thiết cho khâu vận hành."
+            title="6 đơn hàng mới nhất cần theo dõi nhanh"
+            description="Widget này là snapshot mới nhất để thao tác nhanh. Khi cần xem toàn bộ backlog, bộ lọc và phân trang đầy đủ, hãy mở trang quản lý đơn hàng."
           />
+          <div className="inline-actions">
+            <Link className="text-link" to="/admin/orders">
+              Mở danh sách đơn hàng đầy đủ
+            </Link>
+          </div>
           {statusError ? <p className="feedback-text feedback-text-error">{statusError}</p> : null}
           {statusFeedback ? <p className="feedback-text feedback-text-success">{statusFeedback}</p> : null}
           <div className="list-stack compact-list">
@@ -342,9 +351,14 @@ function AdminPage() {
         <article className="surface-card">
           <SectionHeading
             eyebrow="Yêu cầu hỗ trợ"
-            title="Danh sách yêu cầu mới từ khách hàng"
-            description="Cập nhật trạng thái và ghi chú xử lý để cả đội cùng theo dõi tiến độ hỗ trợ."
+            title="6 yêu cầu hỗ trợ mới nhất từ khách hàng"
+            description="Khối này chỉ hiển thị snapshot gần đây để đội vận hành phản hồi nhanh. Toàn bộ danh sách và bộ lọc chi tiết nằm ở trang quản lý liên hệ."
           />
+          <div className="inline-actions">
+            <Link className="text-link" to="/admin/contacts">
+              Mở danh sách liên hệ đầy đủ
+            </Link>
+          </div>
           {contactError ? <p className="feedback-text feedback-text-error">{contactError}</p> : null}
           {contactFeedback ? <p className="feedback-text feedback-text-success">{contactFeedback}</p> : null}
           {contacts.length === 0 ? <EmptyState title="Chưa có yêu cầu hỗ trợ" description="Khi khách hàng gửi biểu mẫu hỗ trợ, yêu cầu sẽ xuất hiện tại đây." /> : (

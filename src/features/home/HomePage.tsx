@@ -1,10 +1,11 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import heroImage from '@/assets/hero.png';
 import BookCard from '@/components/BookCard';
 import SectionHeading from '@/components/SectionHeading';
 import { getCategories } from '@/features/catalog/catalog-api';
+import { addCartItem } from '@/features/cart/cart-api';
 import { useAuth } from '@/features/auth/AuthContext';
 import { buildBannerViewModel } from '@/features/home/banner-link';
 import { getHome, getSettings } from '@/features/home/home-api';
@@ -31,8 +32,15 @@ const trustSignals = [
 ] as const;
 
 function HomePage() {
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const { wishlistIds, pendingBookId, toggleWishlist } = useWishlist();
+  const quickAddToCartMutation = useMutation({
+    mutationFn: (bookId: string) => addCartItem({ bookId, quantity: 1 }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
   const { data: settings } = useSuspenseQuery({
     queryKey: ['settings'],
     queryFn: getSettings,
@@ -76,12 +84,12 @@ function HomePage() {
   ];
 
   return (
-    <div className="page-stack page-stack-home">
-      <section className="home-hero">
-        <div className="home-hero-copy">
+    <div className="page-stack ui-home">
+      <section className="ui-home-hero">
+        <div className="ui-home-hero-copy">
           <p className="eyebrow">MMT Hiệu Sách</p>
           <h1>Tìm cuốn sách yêu thích tiếp theo của bạn tại đây.</h1>
-          <p className="home-hero-description">
+          <p className="ui-home-hero-description">
             {settings.storeName} mang đến trải nghiệm tìm sách, lưu wishlist và đặt hàng trong một không gian mua sắm
             trực tuyến gọn gàng, dễ theo dõi và thân thiện với người đọc.
           </p>
@@ -101,7 +109,7 @@ function HomePage() {
             )}
           </div>
 
-          <div className="home-hero-facts">
+          <div className="ui-home-facts">
             <article>
               <span>Phí vận chuyển</span>
               <strong>{formatCurrency(settings.shippingFee)}</strong>
@@ -117,11 +125,11 @@ function HomePage() {
           </div>
         </div>
 
-        <div className="home-hero-visual">
-          <div className="home-hero-art">
+        <div className="ui-home-hero-visual">
+          <div className="ui-home-hero-art">
             <img alt={leadingBanner?.title ?? 'MMT Hiệu Sách'} src={leadingBanner?.image ?? heroImage} />
           </div>
-          <article className="home-floating-card">
+          <article className="ui-home-floating-card">
             <p className="eyebrow">Gợi ý hôm nay</p>
             <h2>{bannerViewModel.title}</h2>
             <p>{bannerViewModel.description}</p>
@@ -132,9 +140,9 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="trust-strip">
+      <section className="ui-home-trust">
         {trustSignals.map((item) => (
-          <article key={item.title} className="trust-card">
+          <article key={item.title} className="ui-home-trust-card">
             <span className="trust-mark" />
             <div>
               <strong>{item.title}</strong>
@@ -145,7 +153,7 @@ function HomePage() {
       </section>
 
       <section className="page-stack">
-        <div className="shelf-header">
+        <div className="ui-section-head">
           <SectionHeading
             eyebrow="Danh mục sản phẩm"
             title="Bắt đầu từ những kệ sách có chủ đề rõ ràng"
@@ -156,9 +164,9 @@ function HomePage() {
           </Link>
         </div>
 
-        <div className="category-grid">
+        <div className="ui-category-grid">
           {highlightedCategories.map((category) => (
-            <Link key={category.id} className="category-card" to={`/catalog?categoryId=${category.id}`}>
+            <Link key={category.id} className="ui-category-card" to={`/catalog?categoryId=${category.id}`}>
               <span className="category-card-mark" />
               <div>
                 <strong>{category.name}</strong>
@@ -171,26 +179,36 @@ function HomePage() {
 
       {curatedShelves.map((shelf) => (
         <section key={shelf.title} className="page-stack">
-          <div className="shelf-header">
+          <div className="ui-section-head">
             <SectionHeading eyebrow={shelf.eyebrow} title={shelf.title} />
             <Link className="text-link" to={shelf.href}>
               Xem thêm
             </Link>
           </div>
-          <div className="book-grid book-grid-featured">
+          <div className="book-grid ui-book-grid">
             {shelf.books.map((book) => (
               <BookCard
                 key={book.id}
                 accent={shelf.accent}
                 actions={isAuthenticated ? (
-                  <button
-                    className="text-link"
-                    disabled={pendingBookId === book.id}
-                    onClick={() => void toggleWishlist(book.id)}
-                    type="button"
-                  >
-                    {pendingBookId === book.id ? 'Đang cập nhật' : wishlistIds.has(book.id) ? 'Đã lưu' : 'Yêu thích'}
-                  </button>
+                  <div className="inline-actions">
+                    <button
+                      className="text-link"
+                      disabled={pendingBookId === book.id}
+                      onClick={() => void toggleWishlist(book.id)}
+                      type="button"
+                    >
+                      {pendingBookId === book.id ? 'Đang cập nhật' : wishlistIds.has(book.id) ? 'Đã lưu' : 'Yêu thích'}
+                    </button>
+                    <button
+                      className="text-link"
+                      disabled={quickAddToCartMutation.isPending && quickAddToCartMutation.variables === book.id}
+                      onClick={() => quickAddToCartMutation.mutate(book.id)}
+                      type="button"
+                    >
+                      {quickAddToCartMutation.isPending && quickAddToCartMutation.variables === book.id ? 'Đang thêm' : 'Thêm giỏ'}
+                    </button>
+                  </div>
                 ) : undefined}
                 book={book}
               />
@@ -203,4 +221,3 @@ function HomePage() {
 }
 
 export default HomePage;
-

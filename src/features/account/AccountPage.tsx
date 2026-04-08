@@ -5,7 +5,19 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import EmptyState from '@/components/EmptyState';
 import SectionHeading from '@/components/SectionHeading';
-import { cancelOrder, createAddress, getAddresses, getMyOrder, getMyOrders, getPaymentByOrder, getProfile } from '@/features/account/account-api';
+import {
+  cancelOrder,
+  createAddress,
+  deleteAddress,
+  getAddresses,
+  getMyOrder,
+  getMyOrders,
+  getPaymentByOrder,
+  getProfile,
+  uploadProfileAvatar,
+  updateAddress,
+  updateProfile,
+} from '@/features/account/account-api';
 import { formatRealtimeFeedMessage } from '@/features/account/realtime-feed';
 import { changePassword } from '@/features/auth/auth-api';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -31,7 +43,7 @@ const roleLabels = {
 
 function AccountPage() {
   const queryClient = useQueryClient();
-  const { session } = useAuth();
+  const { session, refreshProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { data: profile } = useSuspenseQuery({ queryKey: ['profile'], queryFn: getProfile });
@@ -42,10 +54,17 @@ function AccountPage() {
     queryFn: getSettings,
   });
   const realtimeFeed = useRealtimeFeed(session?.accessToken ?? null);
+  const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [addressFeedback, setAddressFeedback] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [passwordFeedback, setPasswordFeedback] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState({
+    fullName: profile.fullName,
+    phone: profile.phone ?? '',
+  });
   const [addressForm, setAddressForm] = useState({
     receiverName: profile.fullName,
     receiverPhone: profile.phone ?? '',
@@ -55,10 +74,12 @@ function AccountPage() {
     detailAddress: '',
     isDefault: false,
   });
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
   });
+  const isProfileFormValid = Boolean(profileForm.fullName.trim());
   const isAddressFormValid = Boolean(
     addressForm.receiverName.trim() &&
     addressForm.receiverPhone.trim() &&
@@ -74,6 +95,10 @@ function AccountPage() {
   const selectedOrderId = hasRequestedOrder ? requestedOrderId : orders[0]?.id ?? null;
   const selectedOrderSummary = orders.find((order) => order.id === selectedOrderId) ?? orders[0] ?? null;
   const totalSpent = useMemo(() => orders.reduce((sum, order) => sum + Number(order.totalAmount), 0), [orders]);
+  const profileInitials = useMemo(
+    () => profile.fullName.split(' ').filter(Boolean).map((part) => part[0]?.toUpperCase() ?? '').slice(0, 2).join('') || 'MB',
+    [profile.fullName],
+  );
 
   useEffect(() => {
     if (!requestedOrderId || hasRequestedOrder || !orders[0]?.id) {
@@ -84,6 +109,13 @@ function AccountPage() {
     nextParams.set('orderId', orders[0].id);
     setSearchParams(nextParams, { replace: true });
   }, [hasRequestedOrder, orders, requestedOrderId, searchParamsString, setSearchParams]);
+
+  useEffect(() => {
+    setProfileForm({
+      fullName: profile.fullName,
+      phone: profile.phone ?? '',
+    });
+  }, [profile.fullName, profile.phone]);
 
   const selectedOrderQuery = useQuery({
     queryKey: ['orders', 'mine', selectedOrderId],
@@ -97,25 +129,88 @@ function AccountPage() {
     enabled: Boolean(selectedOrderId),
   });
 
-  const addressMutation = useMutation({
-    mutationFn: createAddress,
+  const profileMutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: async (updatedProfile) => {
+      setProfileError(null);
+      setProfileFeedback('Thông tin tài khoản đã được cập nhật.');
+      setProfileForm({
+        fullName: updatedProfile.fullName,
+        phone: updatedProfile.phone ?? '',
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['profile'] }),
+        refreshProfile().catch(() => undefined),
+      ]);
+    },
+    onError: (error) => {
+      setProfileFeedback(null);
+      setProfileError(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ cá nhân');
+    },
+  });
+
+  const avatarMutation = useMutation({
+    mutationFn: uploadProfileAvatar,
+    onSuccess: async () => {
+      setProfileError(null);
+      setProfileFeedback('Ảnh đại diện đã được cập nhật.');
+      setSelectedAvatarFile(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['profile'] }),
+        refreshProfile().catch(() => undefined),
+      ]);
+    },
+    onError: (error) => {
+      setProfileFeedback(null);
+      setProfileError(error instanceof Error ? error.message : 'Không thể cập nhật ảnh đại diện');
+    },
+  });
+
+  function resetAddressForm() {
+    setEditingAddressId(null);
+    setAddressForm({
+      receiverName: profile.fullName,
+      receiverPhone: profile.phone ?? '',
+      province: '',
+      district: '',
+      ward: '',
+      detailAddress: '',
+      isDefault: false,
+    });
+  }
+
+  const saveAddressMutation = useMutation({
+    mutationFn: async (payload: typeof addressForm) => {
+      if (editingAddressId) {
+        return updateAddress(editingAddressId, payload);
+      }
+      return createAddress(payload);
+    },
     onSuccess: async () => {
       setAddressError(null);
-      setAddressFeedback('Địa chỉ mới đã được lưu vào tài khoản.');
-      setAddressForm({
-        receiverName: profile.fullName,
-        receiverPhone: profile.phone ?? '',
-        province: '',
-        district: '',
-        ward: '',
-        detailAddress: '',
-        isDefault: false,
-      });
+      setAddressFeedback(editingAddressId ? 'Địa chỉ đã được cập nhật.' : 'Địa chỉ mới đã được lưu vào tài khoản.');
+      resetAddressForm();
       await queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
     onError: (error) => {
       setAddressFeedback(null);
-      setAddressError(error instanceof Error ? error.message : 'Không thể lưu địa chỉ mới');
+      setAddressError(error instanceof Error ? error.message : 'Không thể lưu địa chỉ');
+    },
+  });
+
+  const deleteAddressMutation = useMutation({
+    mutationFn: deleteAddress,
+    onSuccess: async () => {
+      setAddressError(null);
+      setAddressFeedback('Địa chỉ đã được xóa khỏi tài khoản.');
+      if (editingAddressId) {
+        resetAddressForm();
+      }
+      await queryClient.invalidateQueries({ queryKey: ['addresses'] });
+    },
+    onError: (error) => {
+      setAddressFeedback(null);
+      setAddressError(error instanceof Error ? error.message : 'Không thể xóa địa chỉ');
     },
   });
 
@@ -414,15 +509,120 @@ function AccountPage() {
 
       <section className="account-secondary-grid">
         <article className="checkout-panel">
+          <SectionHeading eyebrow="Hồ sơ cá nhân" title="Cập nhật thông tin liên hệ cơ bản" />
+          <div className="account-avatar-panel">
+            {profile.avatar ? (
+              <img alt={profile.fullName} className="account-avatar-preview" src={profile.avatar} />
+            ) : (
+              <div className="account-avatar-preview account-avatar-preview-placeholder">{profileInitials}</div>
+            )}
+            <div className="account-avatar-actions">
+              <strong>Ảnh đại diện</strong>
+              <p>Ảnh này sẽ được dùng cho hồ sơ tài khoản và các vị trí hiển thị người dùng trong giao diện.</p>
+              <input accept="image/*" onChange={(event) => setSelectedAvatarFile(event.target.files?.[0] ?? null)} type="file" />
+              <div className="inline-actions">
+                <button
+                  className="button button-secondary"
+                  disabled={!selectedAvatarFile || avatarMutation.isPending}
+                  onClick={() => {
+                    if (!selectedAvatarFile) return;
+                    setProfileFeedback(null);
+                    setProfileError(null);
+                    avatarMutation.mutate(selectedAvatarFile);
+                  }}
+                  type="button"
+                >
+                  {avatarMutation.isPending ? 'Đang tải ảnh...' : 'Cập nhật ảnh'}
+                </button>
+                {selectedAvatarFile ? <p>{selectedAvatarFile.name}</p> : null}
+              </div>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label className="field">
+              <span>Họ và tên</span>
+              <input value={profileForm.fullName} onChange={(event) => setProfileForm({ ...profileForm, fullName: event.target.value })} />
+            </label>
+            <label className="field">
+              <span>Số điện thoại</span>
+              <input value={profileForm.phone} onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })} />
+            </label>
+            <label className="field field-wide">
+              <span>Email</span>
+              <input disabled value={profile.email} />
+            </label>
+          </div>
+          {profileError ? <p className="feedback-text feedback-text-error">{profileError}</p> : null}
+          {profileFeedback ? <p className="feedback-text feedback-text-success">{profileFeedback}</p> : null}
+          <button
+            className="button button-primary"
+            disabled={!isProfileFormValid || profileMutation.isPending}
+            onClick={() => {
+              setProfileFeedback(null);
+              setProfileError(null);
+              profileMutation.mutate({
+                fullName: profileForm.fullName.trim(),
+                phone: profileForm.phone.trim() || undefined,
+              });
+            }}
+            type="button"
+          >
+            {profileMutation.isPending ? 'Đang lưu...' : 'Lưu hồ sơ'}
+          </button>
+        </article>
+
+        <article className="checkout-panel">
           <SectionHeading eyebrow="Sổ địa chỉ" title="Quản lý nơi nhận hàng" />
           <div className="address-book-list compact-list">
             {addresses.map((address) => (
               <article key={address.id} className="address-book-card">
-                <strong>{address.receiverName}</strong>
+                <div className="order-card-header">
+                  <strong>{address.receiverName}</strong>
+                  {address.isDefault ? <span className="status-chip status-chip-success">Mặc định</span> : null}
+                </div>
                 <p>{address.receiverPhone}</p>
                 <p>{address.detailAddress}, {address.ward}, {address.district}, {address.province}</p>
+                <div className="inline-actions">
+                  <button
+                    className="text-link"
+                    onClick={() => {
+                      setEditingAddressId(address.id);
+                      setAddressForm({
+                        receiverName: address.receiverName,
+                        receiverPhone: address.receiverPhone,
+                        province: address.province,
+                        district: address.district,
+                        ward: address.ward,
+                        detailAddress: address.detailAddress,
+                        isDefault: address.isDefault,
+                      });
+                    }}
+                    type="button"
+                  >
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    className="text-link"
+                    disabled={deleteAddressMutation.isPending && deleteAddressMutation.variables === address.id}
+                    onClick={() => deleteAddressMutation.mutate(address.id)}
+                    type="button"
+                  >
+                    {deleteAddressMutation.isPending && deleteAddressMutation.variables === address.id ? 'Đang xóa' : 'Xóa'}
+                  </button>
+                </div>
               </article>
             ))}
+          </div>
+          <div className="shelf-header">
+            <SectionHeading
+              eyebrow={editingAddressId ? 'Cập nhật địa chỉ' : 'Địa chỉ mới'}
+              title={editingAddressId ? 'Chỉnh sửa thông tin nhận hàng' : 'Thêm địa chỉ giao hàng mới'}
+            />
+            {editingAddressId ? (
+              <button className="text-link" onClick={resetAddressForm} type="button">
+                Hủy chỉnh sửa
+              </button>
+            ) : null}
           </div>
           <div className="form-grid">
             <label className="field"><span>Người nhận</span><input value={addressForm.receiverName} onChange={(event) => setAddressForm({ ...addressForm, receiverName: event.target.value })} /></label>
@@ -431,16 +631,20 @@ function AccountPage() {
             <label className="field"><span>Quận / huyện</span><input value={addressForm.district} onChange={(event) => setAddressForm({ ...addressForm, district: event.target.value })} /></label>
             <label className="field"><span>Phường / xã</span><input value={addressForm.ward} onChange={(event) => setAddressForm({ ...addressForm, ward: event.target.value })} /></label>
             <label className="field field-wide"><span>Địa chỉ chi tiết</span><input value={addressForm.detailAddress} onChange={(event) => setAddressForm({ ...addressForm, detailAddress: event.target.value })} /></label>
+            <label className="field">
+              <span>Mặc định</span>
+              <input checked={addressForm.isDefault} onChange={(event) => setAddressForm({ ...addressForm, isDefault: event.target.checked })} type="checkbox" />
+            </label>
           </div>
           {addressError ? <p className="feedback-text feedback-text-error">{addressError}</p> : null}
           {addressFeedback ? <p className="feedback-text feedback-text-success">{addressFeedback}</p> : null}
           <button
             className="button button-secondary"
-            disabled={!isAddressFormValid || addressMutation.isPending}
+            disabled={!isAddressFormValid || saveAddressMutation.isPending}
             onClick={() => {
               setAddressFeedback(null);
               setAddressError(null);
-              addressMutation.mutate({
+              saveAddressMutation.mutate({
                 receiverName: addressForm.receiverName.trim(),
                 receiverPhone: addressForm.receiverPhone.trim(),
                 province: addressForm.province.trim(),
@@ -452,7 +656,7 @@ function AccountPage() {
             }}
             type="button"
           >
-            {addressMutation.isPending ? 'Đang lưu...' : 'Thêm địa chỉ mới'}
+            {saveAddressMutation.isPending ? 'Đang lưu...' : editingAddressId ? 'Cập nhật địa chỉ' : 'Thêm địa chỉ mới'}
           </button>
         </article>
 

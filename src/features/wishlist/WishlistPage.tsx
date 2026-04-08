@@ -33,8 +33,8 @@ function WishlistPage() {
   );
 
   return (
-    <div className="page-stack wishlist-shell">
-      <section className="wishlist-hero">
+    <div className="page-stack wishlist-shell ui-wishlist">
+      <section className="wishlist-hero ui-wishlist-hero">
         <div>
           <SectionHeading
             eyebrow="Danh sách yêu thích"
@@ -78,7 +78,7 @@ function WishlistPage() {
         </EmptyState>
       ) : (
         <section className="page-stack">
-          <div className="shelf-header">
+          <div className="ui-section-head">
             <SectionHeading
               eyebrow="Sách đã lưu"
               title="Chọn sách để đưa vào giỏ hàng bất cứ lúc nào"
@@ -89,7 +89,7 @@ function WishlistPage() {
             </Link>
           </div>
 
-          <div className="book-grid book-grid-featured">
+          <div className="book-grid ui-book-grid">
             {items.map((item) => (
               <BookCard
                 key={item.id}

@@ -1,19 +1,27 @@
 import clsx from 'clsx';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import BookCard from '@/components/BookCard';
 import EmptyState from '@/components/EmptyState';
 import SectionHeading from '@/components/SectionHeading';
 import { useAuth } from '@/features/auth/AuthContext';
+import { addCartItem } from '@/features/cart/cart-api';
 import { buildCatalogSearchParams, DEFAULT_CATALOG_FILTERS, readCatalogFilters } from '@/features/catalog/catalog-filters';
 import { getAuthors, getBooks, getCategories, getMetadata, getPublishers } from '@/features/catalog/catalog-api';
 import { useWishlist } from '@/features/wishlist/useWishlist';
 
 function CatalogPage() {
+  const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const { wishlistIds, pendingBookId, toggleWishlist } = useWishlist();
+  const quickAddToCartMutation = useMutation({
+    mutationFn: (bookId: string) => addCartItem({ bookId, quantity: 1 }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsString = searchParams.toString();
   const initialFilters = readCatalogFilters(searchParams);
@@ -90,8 +98,8 @@ function CatalogPage() {
   }
 
   return (
-    <div className="page-stack page-stack-home">
-      <section className="shelf-header">
+    <div className="page-stack ui-catalog">
+      <section className="ui-section-head">
         <SectionHeading
           eyebrow="Danh mục sách"
           title="Kệ sách được sắp xếp để bạn tìm nhanh tựa sách phù hợp"
@@ -104,7 +112,7 @@ function CatalogPage() {
         </button>
       </section>
 
-      <section className="filter-board">
+      <section className="filter-board ui-catalog-filter">
         <label className="field field-wide">
           <span>Tìm sách hoặc ISBN</span>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Ví dụ: Sapiens, Clean Code, ISBN..." />
@@ -146,7 +154,7 @@ function CatalogPage() {
         </label>
       </section>
 
-      <section className="chip-row">
+      <section className="chip-row ui-catalog-quick">
         <button
           className={clsx('button', isNew ? 'button-primary' : 'button-secondary')}
           onClick={() => setIsNew((current) => !current)}
@@ -170,7 +178,7 @@ function CatalogPage() {
         />
       ) : (
         <>
-          <div className="shelf-header">
+          <div className="ui-section-head">
             <SectionHeading
               eyebrow="Kết quả tìm kiếm"
               title={`${books.meta.total} tựa sách phù hợp với bộ lọc hiện tại`}
@@ -180,19 +188,29 @@ function CatalogPage() {
               Quay lại trang chủ
             </Link>
           </div>
-          <div className="book-grid book-grid-featured">
+          <div className="book-grid ui-book-grid">
             {books.items.map((book) => (
               <BookCard
                 key={book.id}
                 actions={isAuthenticated ? (
-                  <button
-                    className="text-link"
-                    disabled={pendingBookId === book.id}
-                    onClick={() => void toggleWishlist(book.id)}
-                    type="button"
-                  >
-                    {pendingBookId === book.id ? 'Đang cập nhật' : wishlistIds.has(book.id) ? 'Đã lưu' : 'Yêu thích'}
-                  </button>
+                  <div className="inline-actions">
+                    <button
+                      className="text-link"
+                      disabled={pendingBookId === book.id}
+                      onClick={() => void toggleWishlist(book.id)}
+                      type="button"
+                    >
+                      {pendingBookId === book.id ? 'Đang cập nhật' : wishlistIds.has(book.id) ? 'Đã lưu' : 'Yêu thích'}
+                    </button>
+                    <button
+                      className="text-link"
+                      disabled={quickAddToCartMutation.isPending && quickAddToCartMutation.variables === book.id}
+                      onClick={() => quickAddToCartMutation.mutate(book.id)}
+                      type="button"
+                    >
+                      {quickAddToCartMutation.isPending && quickAddToCartMutation.variables === book.id ? 'Đang thêm' : 'Thêm giỏ'}
+                    </button>
+                  </div>
                 ) : undefined}
                 book={book}
               />

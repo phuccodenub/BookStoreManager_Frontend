@@ -202,7 +202,7 @@ function AppShell() {
         </div>
       </header>
 
-      <main className="page-frame">
+      <main className="page-frame" id="main-content">
         <Outlet />
       </main>
 
@@ -225,16 +225,18 @@ function AppShell() {
           </div>
 
           <div className="footer-column">
-            <p className="footer-title">Liên hệ</p>
-            <p>{contactAddress}</p>
-            <p>{contactPhone}</p>
-            <p>{contactEmail}</p>
+            <h3 className="footer-title">Liên hệ</h3>
+            <address>
+              <p>{contactAddress}</p>
+              <p>{contactPhone}</p>
+              <p>{contactEmail}</p>
+            </address>
           </div>
 
           <div className="footer-column footer-column-map">
-            <p className="footer-title">Bản đồ cửa hàng</p>
+            <h3 className="footer-title">Bản đồ cửa hàng</h3>
             <div className="footer-map-card">
-              <span className="footer-map-pin" />
+              <span className="footer-map-pin" aria-hidden="true" />
               <div>
                 <strong>Showroom và điểm nhận hàng</strong>
                 <p>Không gian phục vụ mua sắm trực tuyến, nhận đơn và hỗ trợ khách hàng sau mua.</p>

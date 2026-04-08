@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import EmptyState from '@/components/EmptyState';
@@ -282,104 +282,157 @@ function AdminPage() {
     },
   });
 
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'support' | 'inventory'>('overview');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | 'all'>('all');
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    if (orderStatusFilter === 'all') return orders;
+    return orders.filter(o => o.orderStatus === orderStatusFilter);
+  }, [orders, orderStatusFilter]);
+
   return (
     <div className="page-stack">
       <SectionHeading
         eyebrow="Khu vực vận hành"
-        title="Theo dõi đơn hàng, hỗ trợ khách và tồn kho trong một nơi"
-        description="Trang này giúp đội vận hành cập nhật trạng thái đơn, xử lý yêu cầu hỗ trợ và theo dõi các biến động quan trọng trong ngày."
+        title="Quản trị hệ thống"
+        description="Cập nhật trạng thái đơn hàng, xử lý yêu cầu hỗ trợ và theo dõi các biến động tồn kho."
       />
 
-      {dashboardQuery.data ? (
-        <section className="stat-grid stat-grid-wide">
-          <StatCard label="Người dùng" value={dashboardQuery.data.totalUsers} />
-          <StatCard label="Tựa sách" value={dashboardQuery.data.totalBooks} tone="ink" />
-          <StatCard label="Đơn hàng" value={dashboardQuery.data.totalOrders} />
-          <StatCard label="Doanh thu" value={formatCurrency(dashboardQuery.data.totalRevenue)} tone="ink" />
-        </section>
-      ) : null}
+      <div className="header-nav" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
+        <button className={`header-nav-link ${activeTab === 'overview' ? 'header-nav-link-active' : ''}`} onClick={() => setActiveTab('overview')} type="button">Tổng quan</button>
+        <button className={`header-nav-link ${activeTab === 'orders' ? 'header-nav-link-active' : ''}`} onClick={() => setActiveTab('orders')} type="button">Đơn hàng</button>
+        <button className={`header-nav-link ${activeTab === 'support' ? 'header-nav-link-active' : ''}`} onClick={() => setActiveTab('support')} type="button">Yêu cầu hỗ trợ</button>
+        <button className={`header-nav-link ${activeTab === 'inventory' ? 'header-nav-link-active' : ''}`} onClick={() => setActiveTab('inventory')} type="button">Tồn kho</button>
+      </div>
 
-      <section className="two-column-grid two-column-grid-wide">
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Đơn hàng gần đây"
-            title="Cập nhật tiến trình xử lý và tải chứng từ nhanh"
-            description="Từ đây bạn có thể chuyển trạng thái đơn hàng, xem lý do hủy và tải các tệp cần thiết cho khâu vận hành."
-          />
-          {statusError ? <p className="feedback-text feedback-text-error">{statusError}</p> : null}
-          {statusFeedback ? <p className="feedback-text feedback-text-success">{statusFeedback}</p> : null}
-          <div className="list-stack compact-list">
-            {orders.map((order) => (
-              <AdminOrderCard
-                key={order.id}
-                availableStatuses={metadata.orderStatusTransitions?.[order.orderStatus] ?? []}
-                isUpdating={updateStatusMutation.isPending && updateStatusMutation.variables?.orderId === order.id}
-                onUpdate={(payload) => updateStatusMutation.mutate(payload)}
-                order={order}
-              />
-            ))}
-          </div>
-        </article>
-
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Dòng cập nhật"
-            title="Những thay đổi mới nhất trong hệ thống"
-            description="Các thông báo mới về đơn hàng, thanh toán và tồn kho sẽ xuất hiện tại đây để đội vận hành theo dõi nhanh."
-          />
-          <div className="feed-stack">
-            {realtimeFeed.length === 0 ? <p>Chưa có cập nhật mới lúc này. Khi đơn hàng, thanh toán hoặc tồn kho thay đổi, thông tin sẽ xuất hiện tại đây.</p> : realtimeFeed.map((event) => (
-              <article key={`${event.event}-${event.receivedAt}`} className="feed-card">
-                <strong>{formatAdminRealtimeFeedMessage(event.event, event.payload)}</strong>
-                <p>{formatDate(event.receivedAt)}</p>
+      {activeTab === 'overview' && (
+        <div className="page-stack">
+          {dashboardQuery.data ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) 2fr', gap: '1.25rem', alignItems: 'stretch' }}>
+              <article style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2.5rem', borderRadius: '32px', background: 'linear-gradient(135deg, var(--gold-deep) 0%, var(--ink) 100%)', color: 'white', boxShadow: '0 22px 56px rgba(36, 30, 20, 0.15)' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.7)' }}>Tổng doanh thu</span>
+                <strong style={{ fontSize: 'clamp(2.5rem, 4vw, 3.8rem)', lineHeight: 1.1, marginTop: '0.8rem', fontFamily: 'var(--serif)', letterSpacing: '-0.03em' }}>{formatCurrency(dashboardQuery.data.totalRevenue)}</strong>
               </article>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="two-column-grid two-column-grid-wide">
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Yêu cầu hỗ trợ"
-            title="Danh sách yêu cầu mới từ khách hàng"
-            description="Cập nhật trạng thái và ghi chú xử lý để cả đội cùng theo dõi tiến độ hỗ trợ."
-          />
-          {contactError ? <p className="feedback-text feedback-text-error">{contactError}</p> : null}
-          {contactFeedback ? <p className="feedback-text feedback-text-success">{contactFeedback}</p> : null}
-          {contacts.length === 0 ? <EmptyState title="Chưa có yêu cầu hỗ trợ" description="Khi khách hàng gửi biểu mẫu hỗ trợ, yêu cầu sẽ xuất hiện tại đây." /> : (
-            <div className="list-stack compact-list">
-              {contacts.map((contact) => (
-                <AdminContactCard
-                  key={contact.id}
-                  availableStatuses={metadata.contactStatuses ?? ['new', 'in_progress', 'resolved']}
-                  contact={contact}
-                  isUpdating={updateContactMutation.isPending && updateContactMutation.variables?.contactId === contact.id}
-                  onUpdate={(payload) => updateContactMutation.mutate(payload)}
-                />
-              ))}
+              
+              <section className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', alignContent: 'center' }}>
+                <StatCard label="Tài khoản khách" value={dashboardQuery.data.totalUsers} />
+                <StatCard label="Đầu sách active" value={dashboardQuery.data.totalBooks} />
+                <StatCard label="Đơn hàng đã đặt" value={dashboardQuery.data.totalOrders} />
+              </section>
             </div>
-          )}
-        </article>
+          ) : null}
 
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Tồn kho"
-            title="Biến động tồn gần nhất"
-            description="Theo dõi nhanh các lượt nhập kho, điều chỉnh tồn và những thay đổi phát sinh từ quá trình xác nhận đơn."
-          />
-          {inventoryTransactions.length === 0 ? <EmptyState title="Chưa có biến động tồn kho" description="Nhập kho, xuất kho hoặc điều chỉnh tồn sẽ xuất hiện tại đây." /> : (
-            <div className="list-stack compact-list">
-              {inventoryTransactions.map((transaction) => (
-                <article key={transaction.id} className="inventory-card">
-                  <strong>{transaction.book?.title ?? 'Bản ghi tồn kho'}</strong>
-                  <p>{getInventoryTransactionLabel(transaction.type)} • {getInventoryQuantityLabel(transaction.quantity)} • {formatDate(transaction.createdAt)}</p>
-                </article>
-              ))}
+          <section className="two-column-grid">
+            <article className="surface-card" style={{ gridColumn: '1 / -1' }}>
+              <SectionHeading
+                eyebrow="Dòng cập nhật"
+                title="Những thay đổi mới nhất trong hệ thống"
+                description="Các thông báo mới về đơn hàng, thanh toán và tồn kho sẽ xuất hiện tại đây để đội vận hành theo dõi nhanh."
+              />
+              <div className="feed-stack">
+                {realtimeFeed.length === 0 ? <p>Chưa có cập nhật mới lúc này. Khi đơn hàng, thanh toán hoặc tồn kho thay đổi, thông tin sẽ xuất hiện tại đây.</p> : realtimeFeed.map((event) => (
+                  <article key={`${event.event}-${event.receivedAt}`} className="feed-card">
+                    <strong>{formatAdminRealtimeFeedMessage(event.event, event.payload)}</strong>
+                    <p>{formatDate(event.receivedAt)}</p>
+                  </article>
+                ))}
+              </div>
+            </article>
+          </section>
+        </div>
+      )}
+
+      {activeTab === 'orders' && (
+        <section className="two-column-grid">
+          <article className="surface-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="shelf-header" style={{ marginBottom: '1.5rem', alignItems: 'flex-start' }}>
+              <SectionHeading
+                eyebrow="Đơn hàng gần đây"
+                title="Cập nhật tiến trình xử lý và tải chứng từ nhanh"
+                description="Từ đây bạn có thể chuyển trạng thái đơn hàng, xem lý do hủy và tải các tệp cần thiết cho khâu vận hành."
+              />
+              <label className="field" style={{ minWidth: '16rem' }}>
+                <span className="sr-only">Lọc theo trạng thái</span>
+                <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value as OrderStatus | 'all')}>
+                  <option value="all">Tất cả trạng thái</option>
+                  {(['pending', 'confirmed', 'packing', 'shipping', 'completed', 'cancelled'] as const).map(status => (
+                    <option key={status} value={status}>{getOrderStatusLabel(status)}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-          )}
-        </article>
-      </section>
+            
+            {statusError ? <p className="feedback-text feedback-text-error">{statusError}</p> : null}
+            {statusFeedback ? <p className="feedback-text feedback-text-success">{statusFeedback}</p> : null}
+            
+            {filteredOrders.length === 0 ? (
+              <EmptyState title="Không tìm thấy đơn hàng" description={`Hiện tại không có hệ thống ghi nhận có đơn hàng nào khớp với trạng thái "${orderStatusFilter === 'all' ? 'Tất cả' : getOrderStatusLabel(orderStatusFilter)}".`} />
+            ) : (
+              <div className="list-stack compact-list">
+                {filteredOrders.map((order) => (
+                  <AdminOrderCard
+                    key={order.id}
+                    availableStatuses={metadata.orderStatusTransitions?.[order.orderStatus] ?? []}
+                    isUpdating={updateStatusMutation.isPending && updateStatusMutation.variables?.orderId === order.id}
+                    onUpdate={(payload) => updateStatusMutation.mutate(payload)}
+                    order={order}
+                  />
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
+      )}
+
+      {activeTab === 'support' && (
+        <section className="two-column-grid">
+          <article className="surface-card" style={{ gridColumn: '1 / -1' }}>
+            <SectionHeading
+              eyebrow="Yêu cầu hỗ trợ"
+              title="Danh sách yêu cầu mới từ khách hàng"
+              description="Cập nhật trạng thái và ghi chú xử lý để cả đội cùng theo dõi tiến độ hỗ trợ."
+            />
+            {contactError ? <p className="feedback-text feedback-text-error">{contactError}</p> : null}
+            {contactFeedback ? <p className="feedback-text feedback-text-success">{contactFeedback}</p> : null}
+            {contacts.length === 0 ? <EmptyState title="Chưa có yêu cầu hỗ trợ" description="Khi khách hàng gửi biểu mẫu hỗ trợ, yêu cầu sẽ xuất hiện tại đây." /> : (
+              <div className="list-stack compact-list">
+                {contacts.map((contact) => (
+                  <AdminContactCard
+                    key={contact.id}
+                    availableStatuses={metadata.contactStatuses ?? ['new', 'in_progress', 'resolved']}
+                    contact={contact}
+                    isUpdating={updateContactMutation.isPending && updateContactMutation.variables?.contactId === contact.id}
+                    onUpdate={(payload) => updateContactMutation.mutate(payload)}
+                  />
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
+      )}
+
+      {activeTab === 'inventory' && (
+        <section className="two-column-grid">
+          <article className="surface-card" style={{ gridColumn: '1 / -1' }}>
+            <SectionHeading
+              eyebrow="Tồn kho"
+              title="Biến động tồn gần nhất"
+              description="Theo dõi nhanh các lượt nhập kho, điều chỉnh tồn và những thay đổi phát sinh từ quá trình xác nhận đơn."
+            />
+            {inventoryTransactions.length === 0 ? <EmptyState title="Chưa có biến động tồn kho" description="Nhập kho, xuất kho hoặc điều chỉnh tồn sẽ xuất hiện tại đây." /> : (
+              <div className="list-stack compact-list">
+                {inventoryTransactions.map((transaction) => (
+                  <article key={transaction.id} className="inventory-card">
+                    <strong>{transaction.book?.title ?? 'Bản ghi tồn kho'}</strong>
+                    <p>{getInventoryTransactionLabel(transaction.type)} • {getInventoryQuantityLabel(transaction.quantity)} • {formatDate(transaction.createdAt)}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
+      )}
     </div>
   );
 }

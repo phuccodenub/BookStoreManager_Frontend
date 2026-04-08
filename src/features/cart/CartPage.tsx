@@ -41,7 +41,7 @@ function CartPage() {
     () => selectedItems.reduce((sum, item) => sum + Number(item.book.price) * item.quantity, 0),
     [selectedItems],
   );
-  const shippingPreview = selectedItems.length > 0 ? settings.shippingFee : 0;
+  const shippingPreview = selectedItems.length > 0 ? Number(settings.shippingFee) : 0;
   const totalPreview = subtotal + shippingPreview;
   const selectedAddress = addresses.find((address) => address.id === addressId) ?? addresses[0] ?? null;
 

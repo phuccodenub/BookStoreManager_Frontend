@@ -1,35 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 
 :root {
   color-scheme: light;
-  --paper: #f6f0e3;
-  --paper-strong: #efe2c8;
-  --ink: #162022;
-  --ink-soft: #536167;
-  --line: rgba(22, 32, 34, 0.12);
-  --gold: #b7853d;
-  --gold-deep: #8d6228;
-  --berry: #7e4c54;
-  --panel: rgba(255, 252, 246, 0.78);
-  --panel-strong: rgba(255, 250, 241, 0.94);
-  --shadow: 0 24px 80px rgba(38, 34, 27, 0.12);
-  --radius-xl: 28px;
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --sans: 'Manrope', 'Segoe UI', sans-serif;
-  --serif: 'Fraunces', Georgia, serif;
+  /* Modern Color Palette - Blue/Teal Focus */
+  --primary: #0066ff;
+  --primary-light: #4d94ff;
+  --primary-dark: #0052cc;
+  --secondary: #00d4ff;
+  --accent: #ff6b35;
+  --accent-light: #ff8a5b;
+  --success: #00c853;
+  --warning: #ffc400;
+  --error: #ff3b30;
+  
+  /* Neutrals - Clean & Modern */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafb;
+  --bg-tertiary: #f0f2f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4f5b67;   /* Tăng contrast: readable trên nền sáng */
+  --text-tertiary: #6b7a85;   /* Từ #999 lên #6b7a85 — đủ WCAG AA cho text nhỏ */
+  --border: #e0e0e0;
+  --border-light: #f0f0f0;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.15);
+  
+  /* Spacing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  
+  /* Typography */
+  --sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --serif: 'Lora', Georgia, serif;  /* Lora: Google Font, hỗ trợ tiếng Việt, thay thế Sohne không có trên GF */
+  
   font-family: var(--sans);
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 400;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at top left, rgba(183, 133, 61, 0.18), transparent 26%),
-    radial-gradient(circle at top right, rgba(126, 76, 84, 0.16), transparent 24%),
-    linear-gradient(180deg, #fbf7ef 0%, #f5ecdd 52%, #f1e2cc 100%);
+  color: var(--text-primary);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafb 100%);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ── Token aliases: tương thích với figma-refresh.css ── */
+  --gold: var(--primary);
+  --gold-deep: var(--primary-dark);
+  --berry: var(--secondary);
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+  --line: var(--border);
+  --paper: var(--bg-primary);
+  --paper-strong: var(--bg-secondary);
+  --panel: rgba(248, 250, 251, 0.88);
+  --panel-strong: rgba(248, 250, 251, 0.97);
+  --shadow: var(--shadow-md);
+
+  /* ── Brand submark: màu đủ đọc được trên nền sáng ── */
+  --brand-submark-color: #5a6470;
+
+  /* ── Surface layers: phân tầng nền rõ ràng ── */
+  --surface-0: #ffffff;                    /* nền trang */
+  --surface-1: #f8fafb;                    /* panel / section */
+  --surface-2: #f0f4f7;                    /* inner card */
+  --surface-accent: rgba(0, 102, 255, 0.04); /* accent bg nhẹ */
 }
 
 * {
@@ -67,25 +106,26 @@ img {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
 .ambient {
   position: fixed;
   width: 32rem;
   height: 32rem;
-  filter: blur(60px);
-  opacity: 0.35;
+  filter: blur(80px);
+  opacity: 0.15;
   pointer-events: none;
 }
 
 .ambient-left {
-  background: rgba(183, 133, 61, 0.35);
+  background: var(--primary);
   top: -10rem;
   left: -10rem;
 }
 
 .ambient-right {
-  background: rgba(126, 76, 84, 0.24);
+  background: var(--secondary);
   right: -8rem;
   bottom: -12rem;
 }
@@ -98,17 +138,23 @@ img {
   grid-template-columns: 1fr auto auto;
   gap: 1.5rem;
   align-items: center;
-  padding: 1.25rem 2rem;
+  padding: 1rem 2rem;
   backdrop-filter: blur(14px);
-  background: rgba(251, 247, 239, 0.76);
-  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .brand-mark {
   display: inline-block;
   font-family: var(--serif);
-  font-size: 1.6rem;
-  letter-spacing: -0.03em;
+  font-size: 1.8rem;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
 }
 
 .topnav,
@@ -123,21 +169,24 @@ img {
 }
 
 .nav-link {
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
-  color: var(--ink-soft);
-  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 200ms ease;
+  background: transparent;
 }
 
 .nav-link:hover,
 .nav-link-active {
-  color: var(--ink);
-  background: rgba(22, 32, 34, 0.06);
-  transform: translateY(-1px);
+  color: var(--primary);
+  background: rgba(0, 102, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 .nav-link-quiet {
-  background: rgba(255, 255, 255, 0.52);
+  background: rgba(0, 102, 255, 0.05);
 }
 
 .page-frame {
@@ -266,7 +315,7 @@ img {
 .segmented-control button {
   border: none;
   cursor: pointer;
-  transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .button {
@@ -274,36 +323,49 @@ img {
   align-items: center;
   justify-content: center;
   min-height: 2.9rem;
-  padding: 0.8rem 1.15rem;
-  border-radius: 999px;
-  font-weight: 700;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .button:hover,
 .chip-button:hover,
 .stepper button:hover,
 .segmented-control button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .button-primary {
   color: white;
-  background: linear-gradient(135deg, var(--gold) 0%, var(--berry) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  box-shadow: 0 8px 24px rgba(0, 102, 255, 0.2);
+}
+
+.button-primary:hover {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
 }
 
 .button-secondary,
 .chip-button,
 .stepper button,
 .segmented-control button {
-  background: rgba(22, 32, 34, 0.06);
-  color: var(--ink);
+  background: rgba(0, 102, 255, 0.08);
+  color: var(--primary);
+  border: 1px solid rgba(0, 102, 255, 0.2);
+}
+
+.button-secondary:hover {
+  background: rgba(0, 102, 255, 0.15);
+  border-color: rgba(0, 102, 255, 0.3);
 }
 
 .text-link {
   border: none;
   background: none;
   padding: 0;
-  color: var(--berry);
+  color: var(--gold-deep);
   font-weight: 700;
 }
 
@@ -726,7 +788,7 @@ img {
 .reason-callout span {
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--berry);
+  color: var(--gold-deep);
 }
 
 .reason-callout strong {

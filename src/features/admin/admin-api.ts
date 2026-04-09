@@ -17,6 +17,7 @@ import type {
   OrderItem,
   OrderRecord,
   OrderStatus,
+  PaymentStatus,
   PaymentLookup,
   PaymentRecord,
   PaginationMeta,
@@ -81,6 +82,7 @@ interface ActivityLogQuery {
   page?: number;
   limit?: number;
   userId?: string;
+  entityId?: string;
   entityType?: string;
   action?: string;
 }
@@ -92,6 +94,7 @@ export async function getActivityLogs(query: ActivityLogQuery = {}) {
       page: query.page ?? 1,
       limit: query.limit ?? 12,
       userId: query.userId,
+      entityId: query.entityId,
       entityType: query.entityType,
       action: query.action,
     },
@@ -117,15 +120,23 @@ interface AdminOrdersQuery {
   page?: number;
   limit?: number;
   status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  salesChannel?: SalesChannel;
   search?: string;
   userId?: string;
+  from?: string;
+  to?: string;
 }
 
+export type SalesChannel = 'website' | 'hotline' | 'facebook' | 'shopee';
+
 export interface AdminOrderRecord extends OrderRecord {
+  salesChannel?: SalesChannel;
   user?: {
     id: string;
     fullName: string;
     email: string;
+    phone?: string | null;
   } | null;
 }
 
@@ -139,13 +150,39 @@ export interface AdminOrderDetailItem extends OrderItem {
 
 export interface AdminOrderDetailRecord extends Omit<OrderDetailRecord, 'items'> {
   items: AdminOrderDetailItem[];
+  salesChannel?: SalesChannel;
   user?: {
     id: string;
     fullName: string;
     email: string;
     phone?: string | null;
+    _count?: {
+      orders: number;
+    };
   } | null;
   payment: PaymentRecord | null;
+}
+
+export interface AdminManualOrderPayload {
+  userId: string;
+  receiverName: string;
+  receiverPhone: string;
+  province: string;
+  district: string;
+  ward: string;
+  detailAddress: string;
+  paymentMethod: 'cod' | 'online';
+  paymentStatus?: Exclude<PaymentStatus, 'refunded'>;
+  salesChannel?: SalesChannel;
+  shippingFee?: number;
+  voucherCode?: string;
+  customerNote?: string;
+  internalNote?: string;
+  trackingCode?: string;
+  items: Array<{
+    bookId: string;
+    quantity: number;
+  }>;
 }
 
 export async function getAdminOrders(query: AdminOrdersQuery = {}) {
@@ -155,8 +192,12 @@ export async function getAdminOrders(query: AdminOrdersQuery = {}) {
       page: query.page ?? 1,
       limit: query.limit ?? 20,
       status: query.status,
+      paymentStatus: query.paymentStatus,
+      salesChannel: query.salesChannel,
       search: query.search,
       userId: query.userId,
+      from: query.from,
+      to: query.to,
     },
   });
 
@@ -169,6 +210,15 @@ export async function getAdminOrders(query: AdminOrdersQuery = {}) {
 export async function getAdminOrderById(orderId: string) {
   const { data } = await apiRequest<AdminOrderDetailRecord>(`/api/orders/${orderId}`, {
     auth: true,
+  });
+  return data;
+}
+
+export async function createAdminManualOrder(payload: AdminManualOrderPayload) {
+  const { data } = await apiRequest<AdminOrderDetailRecord>('/api/orders/manual', {
+    auth: true,
+    method: 'POST',
+    json: payload,
   });
   return data;
 }
@@ -271,6 +321,18 @@ export async function updateOrderStatus(
   payload: { orderStatus: Exclude<OrderStatus, 'pending'>; cancelledReason?: string },
 ) {
   const { data } = await apiRequest<OrderRecord>(`/api/orders/${orderId}/status`, {
+    auth: true,
+    method: 'PATCH',
+    json: payload,
+  });
+  return data;
+}
+
+export async function updateAdminOrderOps(
+  orderId: string,
+  payload: { trackingCode?: string; internalNote?: string },
+) {
+  const { data } = await apiRequest<AdminOrderDetailRecord>(`/api/orders/${orderId}/ops`, {
     auth: true,
     method: 'PATCH',
     json: payload,
@@ -679,10 +741,10 @@ export async function deleteAdminBook(bookId: string) {
   });
 }
 
-export async function getAdminCustomers() {
+export async function getAdminCustomers(query: { limit?: number; search?: string } = {}) {
   const response = await apiRequest<AdminUser[]>('/api/users', {
     auth: true,
-    query: { page: 1, limit: 20, role: 'customer' },
+    query: { page: 1, limit: query.limit ?? 20, role: 'customer', search: query.search },
   });
   return response.data;
 }

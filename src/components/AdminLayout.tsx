@@ -13,11 +13,16 @@ function AdminLayout() {
   const role = session?.user.role;
   const navItems = getAdminSectionsForRole(role);
   const roleLabel = role === 'admin' || role === 'staff' ? roleLabels[role] : 'Phiên làm việc nội bộ';
+  const dashboardLabel = role === 'admin' ? 'Admin Dashboard' : 'Staff Operations';
 
   return (
     <div className="admin-layout-shell">
       <aside className="admin-sidebar-v2">
-        <div className="admin-sidebar-brand">MMT bookstore</div>
+        <div className="admin-sidebar-brand-block">
+          <p className="admin-sidebar-kicker">MMT internal</p>
+          <div className="admin-sidebar-brand">MMT bookstore</div>
+          <p className="admin-sidebar-caption">Không gian điều hành tập trung cho đội quản trị và vận hành.</p>
+        </div>
         <nav className="admin-sidebar-nav">
           {navItems.map((item) => (
             <NavLink
@@ -32,24 +37,27 @@ function AdminLayout() {
         </nav>
       </aside>
       <section className="admin-content-v2">
-        <div className="surface-card">
-          <div className="shelf-header">
-            <div>
+        <div className="admin-topbar-card">
+          <div className="admin-topbar-copy">
+            <div className="admin-topbar-title-group">
               <p className="eyebrow">Back-office</p>
-              <h1>{role === 'admin' ? 'Admin Dashboard' : 'Staff Operations'}</h1>
-              <p>{roleLabel} • {session?.user.fullName ?? 'MMT bookstore'}</p>
+              <h1>{dashboardLabel}</h1>
+              <p className="admin-topbar-subtitle">{roleLabel} • {session?.user.fullName ?? 'MMT bookstore'}</p>
             </div>
-            <div className="inline-actions">
-              <Link className="button button-secondary" to="/login?switch=1">
+            <span className="admin-role-badge">{roleLabel}</span>
+          </div>
+          <div className="admin-topbar-actions">
+            <Link className="admin-outline-button" to="/login?switch=1">
                 Đổi tài khoản
-              </Link>
-              <Link className="button button-secondary" to="/">
+            </Link>
+            <Link className="admin-outline-button" to="/">
                 Về storefront
-              </Link>
-            </div>
+            </Link>
           </div>
         </div>
-        <Outlet />
+        <div className="admin-content-stack">
+          <Outlet />
+        </div>
       </section>
     </div>
   );

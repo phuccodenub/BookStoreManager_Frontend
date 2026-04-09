@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
@@ -26,10 +26,57 @@ import {
   updateOrderStatus,
 } from '@/features/admin/admin-api';
 import { getMetadata } from '@/features/catalog/catalog-api';
-import { getOrderStatusLabel, getOrderStatusTone, getPaymentStatusLabel, getPaymentStatusTone } from '@/features/order/order-presentation';
+import {
+  getOrderStatusLabel,
+  getOrderStatusTone,
+  getPaymentMethodLabel,
+  getPaymentStatusLabel,
+  getPaymentStatusTone,
+} from '@/features/order/order-presentation';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { useRealtimeFeed } from '@/lib/realtime/useRealtimeFeed';
 import type { ContactRecord, ContactStatus, OrderRecord, OrderStatus } from '@/lib/types';
+
+function DashboardIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      {children}
+    </svg>
+  );
+}
+
+const dashboardIcons = {
+  users: (
+    <DashboardIcon>
+      <path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M20 19v-1a4 4 0 0 0-3-3.87" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <path d="M14 4.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </DashboardIcon>
+  ),
+  books: (
+    <DashboardIcon>
+      <path d="M4.75 5.75A2.75 2.75 0 0 1 7.5 3h11.75v16.25H7.5a2.75 2.75 0 0 0-2.75 2.75V5.75Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+      <path d="M7.5 3v16.25" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M11 7.25h4.75" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M11 11h4.75" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </DashboardIcon>
+  ),
+  orders: (
+    <DashboardIcon>
+      <path d="M7 7.5h10.5a1.75 1.75 0 0 1 1.71 2.12l-1.33 6A1.75 1.75 0 0 1 16.17 17H9.08a1.75 1.75 0 0 1-1.71-1.38L5.52 5.75H3.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <circle cx="9.5" cy="20" r="1.25" fill="currentColor" />
+      <circle cx="16.25" cy="20" r="1.25" fill="currentColor" />
+    </DashboardIcon>
+  ),
+  revenue: (
+    <DashboardIcon>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 7v10" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M15.25 9.75c0-1.1-1.45-2-3.25-2s-3.25.9-3.25 2 1.45 2 3.25 2 3.25.9 3.25 2-1.45 2-3.25 2-3.25-.9-3.25-2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </DashboardIcon>
+  ),
+};
 
 async function saveBlob(blobPromise: Promise<Blob>, filename: string) {
   const blob = await blobPromise;
@@ -64,13 +111,13 @@ function AdminOrderCard({ order, availableStatuses, isUpdating, onUpdate }: Admi
   const canTransition = availableStatuses.length > 0 && nextStatus !== '';
 
   return (
-    <article className="order-card">
-      <div className="order-card-header">
-        <div>
+    <article className="order-card admin-order-card">
+      <div className="order-card-header admin-order-card-header">
+        <div className="admin-order-card-identify">
           <strong>{order.orderCode}</strong>
-          <p>{formatDate(order.createdAt)}</p>
+          <p className="admin-order-card-time">{formatDate(order.createdAt)}</p>
         </div>
-        <div className="detail-secondary-actions">
+        <div className="detail-secondary-actions admin-order-badge-row">
           <span className={`status-chip status-chip-${getOrderStatusTone(order.orderStatus)}`}>
             {getOrderStatusLabel(order.orderStatus)}
           </span>
@@ -79,14 +126,18 @@ function AdminOrderCard({ order, availableStatuses, isUpdating, onUpdate }: Admi
           </span>
         </div>
       </div>
-      <p>{formatCurrency(order.totalAmount)} • Thanh toán {getPaymentStatusLabel(order.paymentStatus).toLowerCase()}</p>
+      <div className="admin-order-summary">
+        <strong>{formatCurrency(order.totalAmount)}</strong>
+        <p>{order.items.length} sản phẩm • {getPaymentMethodLabel(order.paymentMethod)}</p>
+      </div>
+      <p className="admin-order-note">Thanh toán {getPaymentStatusLabel(order.paymentStatus).toLowerCase()}.</p>
       {order.cancelledReason ? (
         <div className="reason-callout">
           <span>Lý do hủy</span>
           <strong>{order.cancelledReason}</strong>
         </div>
       ) : null}
-      <div className="inline-actions">
+      <div className="inline-actions admin-inline-actions">
         <button className="text-link" onClick={() => void saveBlob(downloadInvoice(order.id), `invoice-${order.orderCode}.pdf`)} type="button">Tải hóa đơn</button>
         <button className="text-link" onClick={() => void saveBlob(downloadDeliveryNote(order.id), `delivery-note-${order.orderCode}.pdf`)} type="button">Phiếu giao hàng</button>
       </div>
@@ -285,35 +336,39 @@ function AdminPage() {
   });
 
   return (
-    <div className="page-stack">
-      <SectionHeading
-        eyebrow={isAdmin ? 'Admin dashboard' : 'Staff operations'}
-        title={isAdmin ? 'Theo dõi tổng quan quản trị và vận hành trong một nơi' : 'Theo dõi đơn hàng, hỗ trợ khách và tồn kho trong một nơi'}
-        description={isAdmin
-          ? 'Trang này giúp quản trị viên quan sát tổng quan hệ thống, đồng thời theo dõi các luồng vận hành chính trong ngày.'
-          : 'Trang này giúp nhân viên vận hành cập nhật trạng thái đơn, xử lý yêu cầu hỗ trợ và theo dõi các biến động quan trọng trong ngày.'}
-      />
+    <div className="page-stack admin-dashboard-page">
+      <section className="surface-card admin-dashboard-intro">
+        <SectionHeading
+          eyebrow={isAdmin ? 'Admin dashboard' : 'Staff operations'}
+          title={isAdmin ? 'Tổng quan vận hành sáng sủa, dễ quét và dễ hành động' : 'Khu vực theo dõi thao tác nhanh cho đội vận hành'}
+          description={isAdmin
+            ? 'Theo dõi các chỉ số quan trọng, đơn hàng mới và cập nhật hệ thống ngay trên một màn hình duy nhất.'
+            : 'Cập nhật trạng thái đơn, hỗ trợ khách hàng và theo dõi biến động trong ngày với bố cục rõ ràng hơn.'}
+        />
+      </section>
 
       {dashboardQuery.data ? (
-        <section className="stat-grid stat-grid-wide">
-          <StatCard label="Người dùng" value={dashboardQuery.data.totalUsers} />
-          <StatCard label="Tựa sách" value={dashboardQuery.data.totalBooks} tone="ink" />
-          <StatCard label="Đơn hàng" value={dashboardQuery.data.totalOrders} />
-          <StatCard label="Doanh thu" value={formatCurrency(dashboardQuery.data.totalRevenue)} tone="ink" />
+        <section className="stat-grid stat-grid-wide admin-overview-grid">
+          <StatCard accent="blue" icon={dashboardIcons.users} label="Người dùng" value={dashboardQuery.data.totalUsers} variant="overview" />
+          <StatCard accent="emerald" icon={dashboardIcons.books} label="Tựa sách" value={dashboardQuery.data.totalBooks} variant="overview" />
+          <StatCard accent="amber" icon={dashboardIcons.orders} label="Đơn hàng" value={dashboardQuery.data.totalOrders} variant="overview" />
+          <StatCard accent="rose" icon={dashboardIcons.revenue} label="Doanh thu" value={formatCurrency(dashboardQuery.data.totalRevenue)} variant="overview" />
         </section>
       ) : null}
 
-      <section className="two-column-grid two-column-grid-wide">
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Đơn hàng gần đây"
-            title="6 đơn hàng mới nhất cần theo dõi nhanh"
-            description="Widget này là snapshot mới nhất để thao tác nhanh. Khi cần xem toàn bộ backlog, bộ lọc và phân trang đầy đủ, hãy mở trang quản lý đơn hàng."
-          />
-          <div className="inline-actions">
-            <Link className="text-link" to="/admin/orders">
-              Mở danh sách đơn hàng đầy đủ
-            </Link>
+      <section className="two-column-grid two-column-grid-wide admin-dashboard-grid">
+        <article className="surface-card admin-dashboard-widget">
+          <div className="admin-widget-head">
+            <SectionHeading
+              eyebrow="Đơn hàng gần đây"
+              title="6 đơn hàng mới nhất cần theo dõi nhanh"
+              description="Snapshot mới nhất để thao tác nhanh. Khi cần xem toàn bộ backlog, bộ lọc và phân trang đầy đủ, hãy mở trang quản lý đơn hàng."
+            />
+            <div className="inline-actions">
+              <Link className="text-link admin-widget-link" to="/admin/orders">
+                Mở danh sách đơn hàng đầy đủ
+              </Link>
+            </div>
           </div>
           {statusError ? <p className="feedback-text feedback-text-error">{statusError}</p> : null}
           {statusFeedback ? <p className="feedback-text feedback-text-success">{statusFeedback}</p> : null}
@@ -330,13 +385,15 @@ function AdminPage() {
           </div>
         </article>
 
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Dòng cập nhật"
-            title="Những thay đổi mới nhất trong hệ thống"
-            description="Các thông báo mới về đơn hàng, thanh toán và tồn kho sẽ xuất hiện tại đây để đội vận hành theo dõi nhanh."
-          />
-          <div className="feed-stack">
+        <article className="surface-card admin-dashboard-widget">
+          <div className="admin-widget-head">
+            <SectionHeading
+              eyebrow="Dòng cập nhật"
+              title="Những thay đổi mới nhất trong hệ thống"
+              description="Các thông báo mới về đơn hàng, thanh toán và tồn kho sẽ xuất hiện tại đây để đội vận hành theo dõi nhanh."
+            />
+          </div>
+          <div className="feed-stack admin-activity-feed">
             {realtimeFeed.length === 0 ? <p>Chưa có cập nhật mới lúc này. Khi đơn hàng, thanh toán hoặc tồn kho thay đổi, thông tin sẽ xuất hiện tại đây.</p> : realtimeFeed.map((event) => (
               <article key={`${event.event}-${event.receivedAt}`} className="feed-card">
                 <strong>{formatAdminRealtimeFeedMessage(event.event, event.payload)}</strong>
@@ -347,17 +404,19 @@ function AdminPage() {
         </article>
       </section>
 
-      <section className="two-column-grid two-column-grid-wide">
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Yêu cầu hỗ trợ"
-            title="6 yêu cầu hỗ trợ mới nhất từ khách hàng"
-            description="Khối này chỉ hiển thị snapshot gần đây để đội vận hành phản hồi nhanh. Toàn bộ danh sách và bộ lọc chi tiết nằm ở trang quản lý liên hệ."
-          />
-          <div className="inline-actions">
-            <Link className="text-link" to="/admin/contacts">
-              Mở danh sách liên hệ đầy đủ
-            </Link>
+      <section className="two-column-grid two-column-grid-wide admin-dashboard-grid admin-dashboard-grid-secondary">
+        <article className="surface-card admin-dashboard-widget">
+          <div className="admin-widget-head">
+            <SectionHeading
+              eyebrow="Yêu cầu hỗ trợ"
+              title="6 yêu cầu hỗ trợ mới nhất từ khách hàng"
+              description="Khối này chỉ hiển thị snapshot gần đây để đội vận hành phản hồi nhanh. Toàn bộ danh sách và bộ lọc chi tiết nằm ở trang quản lý liên hệ."
+            />
+            <div className="inline-actions">
+              <Link className="text-link admin-widget-link" to="/admin/contacts">
+                Mở danh sách liên hệ đầy đủ
+              </Link>
+            </div>
           </div>
           {contactError ? <p className="feedback-text feedback-text-error">{contactError}</p> : null}
           {contactFeedback ? <p className="feedback-text feedback-text-success">{contactFeedback}</p> : null}
@@ -376,12 +435,14 @@ function AdminPage() {
           )}
         </article>
 
-        <article className="surface-card">
-          <SectionHeading
-            eyebrow="Tồn kho"
-            title="Biến động tồn gần nhất"
-            description="Theo dõi nhanh các lượt nhập kho, điều chỉnh tồn và những thay đổi phát sinh từ quá trình xác nhận đơn."
-          />
+        <article className="surface-card admin-dashboard-widget">
+          <div className="admin-widget-head">
+            <SectionHeading
+              eyebrow="Tồn kho"
+              title="Biến động tồn gần nhất"
+              description="Theo dõi nhanh các lượt nhập kho, điều chỉnh tồn và những thay đổi phát sinh từ quá trình xác nhận đơn."
+            />
+          </div>
           {inventoryTransactions.length === 0 ? <EmptyState title="Chưa có biến động tồn kho" description="Nhập kho, xuất kho hoặc điều chỉnh tồn sẽ xuất hiện tại đây." /> : (
             <div className="list-stack compact-list">
               {inventoryTransactions.map((transaction) => (

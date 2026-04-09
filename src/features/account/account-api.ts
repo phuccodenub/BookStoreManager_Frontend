@@ -6,6 +6,27 @@ export async function getProfile() {
   return data;
 }
 
+export async function updateProfile(payload: { fullName?: string; phone?: string }) {
+  const { data } = await apiRequest<SessionUser>('/api/users/me', {
+    auth: true,
+    method: 'PATCH',
+    json: payload,
+  });
+  return data;
+}
+
+export async function uploadProfileAvatar(file: File) {
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  const { data } = await apiRequest<SessionUser>('/api/users/me/avatar', {
+    auth: true,
+    method: 'POST',
+    formData,
+  });
+  return data;
+}
+
 export async function getAddresses() {
   const { data } = await apiRequest<Address[]>('/api/addresses', { auth: true });
   return data;
@@ -20,10 +41,42 @@ export async function createAddress(payload: Omit<Address, 'id'>) {
   return data;
 }
 
-export async function getMyOrders() {
+export async function updateAddress(addressId: string, payload: Partial<Omit<Address, 'id'>>) {
+  const { data } = await apiRequest<Address>(`/api/addresses/${addressId}`, {
+    auth: true,
+    method: 'PATCH',
+    json: payload,
+  });
+  return data;
+}
+
+export async function deleteAddress(addressId: string) {
+  await apiRequest<null>(`/api/addresses/${addressId}`, {
+    auth: true,
+    method: 'DELETE',
+  });
+}
+
+function normalizeOrderLimit(limit: unknown, fallback = 20) {
+  if (typeof limit === 'number' && Number.isFinite(limit)) {
+    return limit;
+  }
+
+  if (typeof limit === 'string') {
+    const parsed = Number(limit);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+export async function getMyOrders(limit?: number) {
+  const safeLimit = normalizeOrderLimit(limit);
   const response = await apiRequest<OrderRecord[]>('/api/orders/me', {
     auth: true,
-    query: { page: 1, limit: 10 },
+    query: { page: 1, limit: safeLimit },
   });
   return response.data;
 }

@@ -1,0 +1,127 @@
+/**
+ * DESIGN TOKENS - MMT BookStore
+ * Based on Figma design system
+ * Clean, modern e-commerce aesthetic
+ */
+
+:root {
+  /* ========== BACKGROUNDS ========== */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FBFE;
+  --bg-tertiary: #F7F9FF;
+  --bg-sidebar: #0F2854;
+  --bg-input: #F7F9FF;
+  --bg-hover: #F1F5F9;
+  --bg-auth: #FAF6F6;
+  
+  /* ========== TEXT COLORS ========== */
+  --text-primary: #000000;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --text-on-dark: #EAEFFF;
+  --text-on-navy: #FFFFFF;
+  
+  /* ========== ACCENT COLORS ========== */
+  --accent-navy: #0F2854;
+  --accent-orange: #EC5B13;
+  --accent-gold: #D2A810;
+  --accent-blue: #0EA5E9;
+  --accent-purple: #BE84FF;
+  
+  /* ========== STATUS COLORS ========== */
+  --status-success: #22C55E;
+  --status-success-dark: #157A33;
+  --status-success-bg: #F0FDF4;
+  
+  --status-warning: #F59E0B;
+  --status-warning-light: #FFCE1B;
+  --status-warning-bg: #FFFBEB;
+  
+  --status-error: #FF4242;
+  --status-error-bg: #FEF2F2;
+  
+  --status-info: #38BDF8;
+  --status-info-dark: #0EA5E9;
+  --status-info-bg: #F0F9FF;
+  
+  /* ========== BORDERS ========== */
+  --border-light: #E2E8F0;
+  --border-medium: #CBD5E1;
+  --border-dark: #94A3B8;
+  
+  /* ========== SHADOWS ========== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12);
+  
+  /* ========== BORDER RADIUS ========== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  
+  /* ========== SPACING ========== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  
+  /* ========== TYPOGRAPHY ========== */
+  --font-sans: 'Roboto', 'Inter', 'Public Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Roboto', system-ui, -apple-system, sans-serif;
+  
+  /* Font Sizes */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 23px;
+  --text-2xl: 25px;
+  --text-3xl: 30px;
+  
+  /* Font Weights */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  
+  /* Line Heights */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  /* ========== LAYOUT ========== */
+  --container-max: 1440px;
+  --sidebar-width: 287px;
+  --header-height: 72px;
+  
+  /* ========== TRANSITIONS ========== */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+  
+  /* ========== Z-INDEX ========== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* ========== DARK MODE (Optional - for future) ========== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Keep light mode for now - Figma is light only */
+  }
+}

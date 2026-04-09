@@ -3,22 +3,20 @@ import type { ApiEnvelope, ApiErrorPayload } from '@/lib/types';
 
 interface AuthBridge {
   getAccessToken: () => string | null;
-  getRefreshToken: () => string | null;
-  updateTokens: (tokens: { accessToken: string; refreshToken: string }) => void;
+  updateAccessToken: (accessToken: string) => void;
   clearSession: () => void;
 }
 
 const authBridge: AuthBridge = {
   getAccessToken: () => null,
-  getRefreshToken: () => null,
-  updateTokens: () => undefined,
+  updateAccessToken: () => undefined,
   clearSession: () => undefined,
 };
 
 export class ApiError extends Error {
   status: number;
   code?: string;
-  details?: Record<string, unknown>;
+  details?: unknown;
 
   constructor(message: string, status: number, payload?: ApiErrorPayload) {
     super(message);
@@ -48,34 +46,58 @@ function buildUrl(path: string, query?: Record<string, string | number | boolean
 async function parseJsonSafely(response: Response) {
   const text = await response.text();
   if (!text) return null;
-  return JSON.parse(text) as ApiEnvelope<unknown> | { error?: ApiErrorPayload; message?: string };
+
+  try {
+    return JSON.parse(text) as ApiEnvelope<unknown> | { error?: ApiErrorPayload; message?: string };
+  } catch {
+    return null;
+  }
+}
+
+async function performRequest(input: string, init?: RequestInit) {
+  try {
+    return await fetch(input, {
+      credentials: init?.credentials ?? 'include',
+      ...init,
+    });
+  } catch {
+      throw new ApiError('Không thể kết nối tới máy chủ. Vui lòng kiểm tra dịch vụ và thử lại.', 0, {
+        code: 'NETWORK_ERROR',
+        message: 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra dịch vụ và thử lại.',
+      });
+  }
 }
 
 let refreshPromise: Promise<string | null> | null = null;
 
-async function refreshAccessToken() {
-  const refreshToken = authBridge.getRefreshToken();
-  if (!refreshToken) {
-    authBridge.clearSession();
-    return null;
-  }
-
+export async function requestAccessTokenRefresh() {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const response = await fetch(buildUrl('/api/auth/refresh'), {
+      const response = await performRequest(buildUrl('/api/auth/refresh'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({}),
       });
 
       const payload = await parseJsonSafely(response);
-      if (!response.ok || !payload || !('data' in payload)) {
+      if (response.status === 401 || response.status === 403) {
         authBridge.clearSession();
         return null;
       }
 
-      const data = payload.data as { accessToken: string; refreshToken: string };
-      authBridge.updateTokens(data);
+      if (!response.ok) {
+        const errorPayload = payload && 'error' in payload ? payload.error : undefined;
+        const message = errorPayload?.message ?? (payload && 'message' in payload ? payload.message : 'Request failed');
+        throw new ApiError(message ?? 'Request failed', response.status, errorPayload);
+      }
+
+      if (!payload || !('data' in payload)) {
+        authBridge.clearSession();
+        return null;
+      }
+
+      const data = payload.data as { accessToken: string };
+      authBridge.updateAccessToken(data.accessToken);
       return data.accessToken;
     })().finally(() => {
       refreshPromise = null;
@@ -89,11 +111,13 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   auth?: boolean;
   query?: Record<string, string | number | boolean | undefined>;
   json?: unknown;
+  formData?: FormData;
   retryOnAuthError?: boolean;
+  accessTokenOverride?: string;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; meta?: ApiEnvelope<T>['meta'] }> {
-  const token = options.auth ? authBridge.getAccessToken() : null;
+  const token = options.accessTokenOverride ?? (options.auth ? authBridge.getAccessToken() : null);
   const headers = new Headers(options.headers ?? {});
 
   if (options.json !== undefined) {
@@ -103,16 +127,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path, options.query), {
+  const response = await performRequest(buildUrl(path, options.query), {
     ...options,
     headers,
-    body: options.json !== undefined ? JSON.stringify(options.json) : undefined,
+    body: options.formData ?? (options.json !== undefined ? JSON.stringify(options.json) : undefined),
   });
 
   if ((response.status === 401 || response.status === 403) && options.auth && options.retryOnAuthError !== false) {
-    const refreshedToken = await refreshAccessToken();
+    const refreshedToken = await requestAccessTokenRefresh();
     if (refreshedToken) {
-      return apiRequest<T>(path, { ...options, retryOnAuthError: false });
+      return apiRequest<T>(path, { ...options, accessTokenOverride: refreshedToken, retryOnAuthError: false });
     }
   }
 
@@ -136,21 +160,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 export async function apiBlob(path: string, options: RequestOptions = {}) {
-  const token = options.auth ? authBridge.getAccessToken() : null;
+  const token = options.accessTokenOverride ?? (options.auth ? authBridge.getAccessToken() : null);
   const headers = new Headers(options.headers ?? {});
   if (options.auth && token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path, options.query), {
+  const response = await performRequest(buildUrl(path, options.query), {
     ...options,
     headers,
   });
 
   if ((response.status === 401 || response.status === 403) && options.auth && options.retryOnAuthError !== false) {
-    const refreshedToken = await refreshAccessToken();
+    const refreshedToken = await requestAccessTokenRefresh();
     if (refreshedToken) {
-      return apiBlob(path, { ...options, retryOnAuthError: false });
+      return apiBlob(path, { ...options, accessTokenOverride: refreshedToken, retryOnAuthError: false });
     }
   }
 

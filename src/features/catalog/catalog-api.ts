@@ -9,6 +9,8 @@ export interface BookListQuery {
   authorId?: string;
   publisherId?: string;
   sortBy?: string;
+  isNew?: boolean;
+  isBestSeller?: boolean;
 }
 
 export async function getBooks(query: BookListQuery) {
@@ -21,6 +23,8 @@ export async function getBooks(query: BookListQuery) {
       authorId: query.authorId,
       publisherId: query.publisherId,
       sortBy: query.sortBy,
+      isNew: query.isNew,
+      isBestSeller: query.isBestSeller,
     },
   });
 

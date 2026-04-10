@@ -1,5 +1,9 @@
 # BookStoreManager Frontend
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![React](https://img.shields.io/badge/react-19-61dafb.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
 API-first React frontend for the BookStoreManager backend.
 
 ## Stack
